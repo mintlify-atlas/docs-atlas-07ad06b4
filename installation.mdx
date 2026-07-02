@@ -71,21 +71,18 @@ If you prefer a standalone installation, every tagged release is published as a 
     The latest stable release is always listed at the top of the page.
   </Step>
   <Step title="Download the archive for your platform">
-    Under **Assets**, download the archive that matches your operating system:
-
-    | File pattern | Platform |
-    |---|---|
-    | `fluXis-win-x64.zip` | Windows 64-bit |
-    | `fluXis-osx-x64.tar.gz` | macOS (Intel) |
-    | `fluXis-osx-arm64.tar.gz` | macOS (Apple Silicon) |
-    | `fluXis-linux-x64.tar.gz` | Linux 64-bit |
+    Under **Assets**, download the archive that matches your operating system.
+    See the [GitHub releases page](https://github.com/InventiveRhythm/fluXis/releases)
+    for the current asset names — they are listed directly under each release.
   </Step>
   <Step title="Extract the archive">
     Extract the downloaded archive to a folder of your choice. On Windows you
-    can right-click and select **Extract All**. On macOS and Linux, use:
+    can right-click and select **Extract All**. On macOS and Linux, use your
+    system's archive tool or the `tar` command with the filename shown on the
+    releases page, for example:
 
     ```bash
-    tar -xzf fluXis-linux-x64.tar.gz -C ~/Games/fluXis
+    tar -xzf <downloaded-archive>.tar.gz -C ~/Games/fluXis
     ```
   </Step>
   <Step title="Run the executable">
@@ -113,4 +110,4 @@ If you prefer a standalone installation, every tagged release is published as a 
 
 ## Importing Maps from Other Games
 
-After installing fluXis you can immediately populate your library by importing maps from osu!, Quaver, and Stepmania. Go to **Settings → Imports** inside the game and point fluXis at the relevant game's song folder. fluXis will convert and index the maps automatically so they appear in your song select.
+After installing fluXis you can immediately populate your library by importing maps from osu!, Quaver, and Stepmania. Go to **Settings → Plugins** inside the game and use the import section to point fluXis at the relevant game's song folder. fluXis will convert and index the maps automatically so they appear in your song select.

@@ -34,7 +34,7 @@ fluXis stores a separate layout block in `skin.json` for each key count from 1k 
 </ParamField>
 
 <ParamField body="tint_notes" type="bool" default="false">
-  When `true`, fluXis colorizes note head textures (hit objects and long note start/end caps) with the lane color resolved from the `colors` array. The color is applied as a multiplicative tint, so a pure-white area of the texture takes on the full lane color while darker areas are less affected.
+  When `true`, fluXis colorizes note head textures (hit objects and long note start caps) with the lane color resolved from the `colors` array. The color is applied as a multiplicative tint, so a pure-white area of the texture takes on the full lane color while darker areas are less affected.
 
   When `false`, note textures are rendered at their original pixel colors with no tint applied. Use this when your textures are pre-colored and you do not want fluXis to modify them.
 
@@ -58,7 +58,7 @@ fluXis stores a separate layout block in `skin.json` for each key count from 1k 
 </ParamField>
 
 <ParamField body="receptors_first" type="bool" default="false">
-  When `true`, receptors are drawn on top of all other stage elements (including notes). When `false` (the default), receptors are drawn behind notes so a note moving into the hit zone passes in front of the receptor.
+  When `true`, receptors are added to the playfield render order before notes, so notes are drawn on top of receptors — a note moving into the hit zone passes in front of the receptor. When `false` (the default), notes are added before receptors, so receptors are drawn on top of notes.
 </ParamField>
 
 <ParamField body="receptor_offset" type="int" default="0">
@@ -95,7 +95,7 @@ The tinting system in fluXis is multiplicative: a pure white pixel in the source
   </Tab>
 
   <Tab title="tint_notes: true, tint_lns: false">
-    Only the note head (hit object) texture and long note start/end caps are tinted. The long note **body** is rendered untinted. This lets you use a gradient or multi-color body texture that is independent of the lane color while still having the note heads match their lane.
+    Only note head (hit object) textures and long note start caps are tinted. Long note **end caps** and the long note **body** are rendered untinted. This lets you use a gradient or multi-color body texture that is independent of the lane color while still having the note heads match their lane.
 
     ```json
     {

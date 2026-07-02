@@ -1,7 +1,7 @@
 ---
-title: "Build a fluXis Plugin: Importers and Settings"
+title: "Build fluXis Plugins: Map Importers and Settings Panels"
 sidebarTitle: "Plugins"
-description: "fluXis plugins extend the game with custom map importers and settings panels. Implement the Plugin abstract class to add support for new map formats."
+description: "fluXis plugins extend the game with custom map importers and settings panels. Implement the Plugin abstract class to add new map format support."
 ---
 
 The fluXis plugin system lets external assemblies extend the game without modifying core code. Plugins are most commonly used to add **map importers** — translation layers that convert beatmaps from other rhythm games (osu!, Quaver, StepMania) into the native fluXis `.fms` format. Each plugin can also declare a settings panel that appears in the in-game settings overlay, and a persistent configuration file backed by an INI store. At startup, `PluginManager` scans several well-known locations for qualifying assemblies and loads every `Plugin` subclass it finds.
@@ -24,9 +24,11 @@ public abstract class Plugin
     public string Hash         { get; internal set; }
 
     // Lazily created importer instance (null if plugin has no importer)
+    [CanBeNull]
     public MapImporter Importer => importer ??= CreateImporter();
 
     // Override to provide a map importer
+    [CanBeNull]
     protected virtual MapImporter CreateImporter() => null;
 
     // Override to initialise persistent config tied to plugin storage
@@ -191,13 +193,6 @@ The `OsuPlugin` class is the reference implementation shipped with fluXis. It de
     ```csharp
     // fluXis.Import.osu/OsuPluginConfig.cs
 
-    // The enum defines all config keys for this plugin
-    public enum OsuPluginSetting
-    {
-        GameLocation,
-        SkipBackgrounds
-    }
-
     public class OsuPluginConfig : PluginConfigManager<OsuPluginSetting>
     {
         // Config file will be written as "osu.config.ini"
@@ -217,6 +212,13 @@ The `OsuPlugin` class is the reference implementation shipped with fluXis. It de
 
             SetDefault(OsuPluginSetting.SkipBackgrounds, false);
         }
+    }
+
+    // The enum defines all config keys for this plugin
+    public enum OsuPluginSetting
+    {
+        GameLocation,
+        SkipBackgrounds
     }
     ```
   </Tab>

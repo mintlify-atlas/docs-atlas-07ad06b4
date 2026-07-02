@@ -1,7 +1,7 @@
 ---
-title: "Set Up Lua IDE and Language Server for fluXis Scripting"
+title: "Set Up Lua IDE and Language Server for fluXis Scripts"
 sidebarTitle: "IDE Setup"
-description: "Configure VS Code or Rider with the sumneko Lua language server and fluXis type definitions for autocomplete and type hints in storyboard scripts."
+description: "Configure VS Code or Rider with sumneko's Lua Language Server and fluXis type definitions for autocomplete and type hints in scripts."
 ---
 
 Writing fluXis storyboard scripts in a plain text editor works, but you will miss out on autocompletion, inline documentation, and type error highlighting. The fluXis installation ships a `scripting/` folder that contains Lua library definition files specifically authored for sumneko's Lua Language Server. Once the language server is pointed at that folder, your editor gains full awareness of every fluXis global — element constructors, `mathf` functions, `AudioAnalyzer` methods, easing names, enum values, and more.
@@ -17,7 +17,7 @@ The `scripting/library/` directory holds a set of `---@meta` Lua files. These fi
 | `skin.lua` | `skin:sprratio()`, `skin:colwidth()`, `skin:hitpos()`, `skin:recoffset()`, `skin:recfirst()` |
 | `audio.lua` | `AudioAnalyzer`, `FFTParameters`, `FFTFrame`, `FFTBands` |
 | `math.lua` | `mathf` with all scalar and vector methods |
-| `map.lua` | `map:NotesInRange()`, `map:TimingPointsInRange()`, `map:ScrollVelocitiesInRange()`, `map:EventsInRange()` |
+| `map.lua` | `map:NotesInRange()`, `map:TimingPointsInRange()`, `map:ScrollVelocitiesInRange()`, `map:HitSoundFadesInRange()`, `map:EventsInRange()` |
 | `enums.lua` | `Easing`, `HitObjectType`, `AnchorName`, `BlendMode`, `EventType`, `ParameterDefinitionType` |
 | `events.lua` | All event class definitions (`BeatPulseEvent`, `FlashEvent`, `ShaderEvent`, etc.) |
 | `struct.lua` | `Vector2`, `Color4`, `HitObject`, `TimingPoint`, `ScrollVelocity`, `HitSoundFade` |

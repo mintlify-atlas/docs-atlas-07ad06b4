@@ -1,10 +1,10 @@
 ---
-title: "The fluXis Map Editor: A Complete Overview"
+title: "fluXis Map Editor: Interface and Features Overview"
 sidebarTitle: "Editor Overview"
-description: "The fluXis editor has four tabs — Setup, Charting, Design, and Verify. Learn the interface layout, keyboard shortcuts, snap settings, and how to save your work."
+description: "The fluXis editor has five tabs — Setup, Charting, Design, Storyboard, and Verify. Learn the layout, snap settings, saving, and keyboard shortcuts."
 ---
 
-The fluXis map editor is the built-in tool for creating and editing maps directly inside the game. It is organized into four tabs that each handle a distinct phase of map creation: setting up metadata and assets, placing hit objects, designing visual events, and verifying map quality before upload. The editor loads asynchronously so the Charting and Design tabs show a spinner while their complex containers initialize — this is expected behavior, not a freeze.
+The fluXis map editor is the built-in tool for creating and editing maps directly inside the game. It is organized into five tabs that each handle a distinct phase of map creation: setting up metadata and assets, placing hit objects, designing visual events, editing storyboard elements, and verifying map quality before upload. The editor loads asynchronously so the Charting and Design tabs show a spinner while their complex containers initialize — this is expected behavior, not a freeze.
 
 ## Interface Layout
 
@@ -18,7 +18,7 @@ The area between the menu bar and the bottom bar is occupied entirely by the act
 
 ---
 
-## The Four Editor Tabs
+## The Five Editor Tabs
 
 <CardGroup cols={2}>
   <Card title="Setup" icon="wrench">
@@ -30,14 +30,13 @@ The area between the menu bar and the bottom bar is occupied entirely by the act
   <Card title="Design" icon="palette">
     A live-preview event editor that renders the full gameplay ruleset in the background while you place flash events, playfield animations, shaders, and more on a timeline sidebar. Also loads asynchronously.
   </Card>
-  <Card title="Verify" icon="check-square">
+  <Card title="Storyboard" icon="paint-brush-broad">
+    A timeline-based editor for storyboard animations and script elements. Shows a live preview of the storyboard in the center with the animation list on the left and element settings on the right.
+  </Card>
+  <Card title="Verify" icon="checks">
     Runs automated checks across the entire map — metadata completeness, audio file presence, overlapping notes, unused assets, and more — and lists every issue with severity, category, timestamp, and a human-readable message.
   </Card>
 </CardGroup>
-
-<Note>
-  A fifth **Storyboard** tab exists in the source code for managing storyboard animations and is accessible once a storyboard is added to your map.
-</Note>
 
 ---
 

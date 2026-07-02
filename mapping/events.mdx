@@ -51,7 +51,7 @@ Nearly every event type includes the following properties:
 | `time` | `number` | Trigger time in milliseconds (required). |
 | `group` | `string` | Optional event group name for use with `LoopEvent`. Omitted from JSON when empty. |
 | `duration` | `number` | Length of the animated transition in milliseconds (`0` = instant). |
-| `ease` | `Easing` | osu-framework easing function (integer or string). `0` = `None` (linear). |
+| `ease` | `Easing` | osu-framework easing function (integer or string). `0` = `None` (linear). Note: `laneswitch` and `pulse` use the key `easing` instead of `ease`. |
 
 ---
 
@@ -191,6 +191,9 @@ Nearly every event type includes the following properties:
   </ParamField>
   <ParamField body="in-percent" type="float" default="0">
     Fraction of `duration` used for the expand phase (`0.0`–`1.0`). The remaining fraction is used for the collapse.
+  </ParamField>
+  <ParamField body="easing" type="Easing" default="Out">
+    Easing function for the pulse animation. Uses the key `easing` (not `ease`). Defaults to `Out`.
   </ParamField>
 </Accordion>
 
@@ -357,6 +360,9 @@ Nearly every event type includes the following properties:
   <ParamField body="playfield" type="integer" default="0">
     Zero-based index of the target playfield.
   </ParamField>
+  <ParamField body="subfield" type="integer" default="0">
+    Sub-playfield index for dual-mode maps.
+  </ParamField>
 </Accordion>
 
 <Accordion title="playfieldscale — Playfield Scale">
@@ -382,6 +388,12 @@ Nearly every event type includes the following properties:
   <ParamField body="y" type="float" default="1">
     Vertical scale factor. `1.0` = normal height.
   </ParamField>
+  <ParamField body="playfield" type="integer" default="0">
+    Zero-based index of the target playfield.
+  </ParamField>
+  <ParamField body="subfield" type="integer" default="0">
+    Sub-playfield index for dual-mode maps.
+  </ParamField>
 </Accordion>
 
 <Accordion title="playfieldrotate — Playfield Rotation">
@@ -402,6 +414,12 @@ Nearly every event type includes the following properties:
 
   <ParamField body="roll" type="float" default="0">
     Rotation angle in degrees. Positive values rotate clockwise. The playfield snaps back to `0` only if another `playfieldrotate` event explicitly sets it.
+  </ParamField>
+  <ParamField body="playfield" type="integer" default="0">
+    Zero-based index of the target playfield.
+  </ParamField>
+  <ParamField body="subfield" type="integer" default="0">
+    Sub-playfield index for dual-mode maps.
   </ParamField>
 </Accordion>
 

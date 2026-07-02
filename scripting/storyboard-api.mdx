@@ -1,7 +1,7 @@
 ---
 title: "Storyboard Lua API Complete Reference for fluXis Maps"
 sidebarTitle: "Storyboard API"
-description: "The storyboard Lua API provides Add(), element constructors (Box, Sprite, Text, Circle), and global state objects for screen size, metadata, and settings."
+description: "The storyboard Lua API provides Add(), element constructors (Box, Sprite, Text, Circle, SkinSprite), and global objects for screen, metadata, and settings."
 ---
 
 The storyboard Lua API is the set of globals injected by `StoryboardScriptRunner` on top of the shared base. It gives your `process()` function everything needed to build a complete visual layer: constructors for every element type, a function to commit elements to the storyboard, read-only global objects describing the screen, the current map, and the player's settings, and a rich animation system on every element.

@@ -31,7 +31,7 @@ Each timing window is calculated with three anchor values — **min**, **mid**, 
 - If difficulty < 5: `mid + (mid − min) × ((difficulty − 5) / 5)`
 - If difficulty = 5: `mid`
 
-The final window is then divided by the current **rate multiplier** (if a Rate mod is active) — faster rates tighten the effective window, making timing harder.
+The final window is then **multiplied** by the current rate (if a Rate mod is active) — this scales the absolute millisecond window proportionally so that timing feels roughly equivalent at any speed. A faster rate means notes arrive sooner, but the window is wider in absolute milliseconds by the same factor.
 
 | Judgement | Difficulty 0 (min) | Difficulty 5 (mid) | Difficulty 10 (max) |
 |-----------|--------------------|--------------------|---------------------|
@@ -76,13 +76,14 @@ The raw score is calculated out of a base of **1,000,000 points**, scaled by any
 
 ```
 maxScore    = 1,000,000 × scoreMultiplier
-accBased    = (ratedNotes / maxCombo) × (maxScore × 0.90)
-comboBased  = (maxCombo / totalNotes) × (maxScore × 0.10)
+accBased    = (ratedNotes / mapMaxCombo) × (maxScore × 0.90)
+comboBased  = (maxCombo  / mapMaxCombo) × (maxScore × 0.10)
 score       = accBased + comboBased
 ```
 
 - **90%** of the maximum score comes from accuracy (weighted hit rate).
 - **10%** comes from your **maximum combo** achieved during the play.
+- Both components are divided by `mapMaxCombo` — the map's theoretical maximum combo, which counts each long note's head and tail release separately (so a map with long notes has a higher `mapMaxCombo` than its raw note count).
 - The `scoreMultiplier` is the product of all active mod multipliers (e.g., Hard mod adds ×1.04).
 
 <Note>
