@@ -1,0 +1,499 @@
+---
+title: "Global Scripting Functions and Built-in Lua Objects"
+sidebarTitle: "Global Functions"
+description: "All fluXis scripts share globals: SetVersion, RandomRange, BPMAtTime, DefineParameter, print, plus mathf, Vector2, Color4, Easing, and audio analysis."
+---
+
+Every fluXis Lua script — regardless of whether it is a storyboard script or a skin script — has access to a common set of global functions and objects injected by the base `ScriptRunner` class. These cover versioning, randomness, BPM queries, parameter declarations, logging, math, vector and colour construction, easing lookup, and (in storyboard context) full audio frequency analysis. This page documents all of them with examples and parameter details.
+
+---
+
+## Core Global Functions
+
+### `SetVersion(v)`
+
+Declares which version of the storyboard API the script was written against. Must be called at the very top of the script before any other code.
+
+<ParamField path="v" type="number" required>
+  Target API version. The current latest version is **2**.
+</ParamField>
+
+```lua
+SetVersion(2)
+```
+
+The engine uses the declared version to apply forward-compatibility transforms. For instance, when version is below 2 the engine automatically shifts all animation start times to be element-relative.
+
+---
+
+### `RandomRange(from, to)`
+
+Returns a uniformly distributed random integer between `from` and `to` **inclusive**. The underlying implementation uses osu!framework's `RNG.Next`, which is seeded per-run.
+
+<ParamField path="from" type="number" required>
+  Lower bound (inclusive).
+</ParamField>
+<ParamField path="to" type="number" required>
+  Upper bound (inclusive).
+</ParamField>
+
+```lua
+local lane = RandomRange(1, 4)   -- picks a lane between 1 and 4
+local offset = RandomRange(-20, 20)
+```
+
+---
+
+### `BPMAtTime(time)`
+
+Returns the BPM value of the timing point active at the given map timestamp.
+
+<ParamField path="time" type="number" required>
+  Map time in milliseconds.
+</ParamField>
+
+```lua
+local bpm = BPMAtTime(5000)   -- BPM at 5 seconds into the map
+local beatLen = 60000 / bpm   -- beat length in ms
+```
+
+<Note>
+  `BPMAtTime` reads from the map's timing points table. Calling it without a loaded map (outside of gameplay context) will throw an error.
+</Note>
+
+---
+
+### `DefineParameter(key, title, type, fallback)`
+
+Registers a user-editable parameter that the storyboard editor can expose in its UI panel. Users set values in the editor; scripts read them back on an element via `element:param(key, fallback)`.
+
+<ParamField path="key" type="string" required>
+  Unique identifier for this parameter. Used as the lookup key in `:param()`.
+</ParamField>
+<ParamField path="title" type="string" required>
+  Human-readable label shown in the editor UI.
+</ParamField>
+<ParamField path="type" type="ParameterDefinitionType" required>
+  Data type of the parameter. Must be one of: `"string"`, `"int"`, `"float"`, `"boolean"`.
+</ParamField>
+<ParamField path="fallback" type="any">
+  Default value used when the parameter has not been set. Optional.
+</ParamField>
+
+```lua
+DefineParameter("color_r",  "Red Amount",    "float",   1.0)
+DefineParameter("color_g",  "Green Amount",  "float",   0.5)
+DefineParameter("color_b",  "Blue Amount",   "float",   0.0)
+DefineParameter("label",    "Display Text",  "string",  "Hello")
+DefineParameter("visible",  "Show Element",  "boolean", true)
+DefineParameter("count",    "Repeat Count",  "int",     4)
+
+function process(parent)
+  local r = parent:param("color_r", 1.0)
+  local g = parent:param("color_g", 0.5)
+  local b = parent:param("color_b", 0.0)
+  -- use r, g, b ...
+end
+```
+
+---
+
+### `print(text)`
+
+Writes a message to the fluXis scripting log (`scripting.log`). Useful for debugging during development; has no effect on gameplay rendering.
+
+<ParamField path="text" type="string" required>
+  Message to log. The engine prepends `[Script] ` to each entry.
+</ParamField>
+
+```lua
+print("Script loaded, screen=" .. screen.x .. "x" .. screen.y)
+```
+
+---
+
+## Constructors
+
+### `Vector2(x, y)`
+
+Creates a new 2D vector object. All position and size fields that take vectors expect a `Vector2` instance.
+
+<ParamField path="x" type="number" required>Horizontal component.</ParamField>
+<ParamField path="y" type="number" required>Vertical component.</ParamField>
+
+```lua
+local pos  = Vector2(320, 240)
+local size = Vector2(100, 50)
+print("x=" .. pos.x .. " y=" .. pos.y)
+```
+
+#### Convenience Constructors
+
+| Function | Equivalent |
+|---|---|
+| `Vector2Zero()` | `Vector2(0, 0)` |
+| `Vector2One()` | `Vector2(1, 1)` |
+
+---
+
+### `Color4(r, g, b, a)`
+
+Creates a colour value with components in the range **0.0 – 1.0**.
+
+<ParamField path="r" type="number" required>Red channel (0.0 – 1.0).</ParamField>
+<ParamField path="g" type="number" required>Green channel (0.0 – 1.0).</ParamField>
+<ParamField path="b" type="number" required>Blue channel (0.0 – 1.0).</ParamField>
+<ParamField path="a" type="number" required>Alpha channel (0.0 – 1.0).</ParamField>
+
+```lua
+local red       = Color4(1.0, 0.0, 0.0, 1.0)
+local halfWhite = Color4(1.0, 1.0, 1.0, 0.5)
+print("r=" .. red.r)
+```
+
+---
+
+### `Easing(str)`
+
+Converts an easing name string to its internal numeric value. Pass the result directly to `element:animate()`.
+
+<ParamField path="str" type="Easing" required>
+  Name of the easing curve. Returns `Easing.None` (0) for unrecognised strings.
+</ParamField>
+
+```lua
+local e = Easing("OutElastic")
+spr:animate("Scale", 0, 400, "0.8", "1.0", e)
+```
+
+**Full list of supported easing names:**
+
+<Accordion title="All Easing Values">
+
+| Name | Curve Behaviour |
+|---|---|
+| `"None"` | Linear / no easing |
+| `"Out"` | Generic ease-out |
+| `"In"` | Generic ease-in |
+| `"InQuad"` | Quadratic in |
+| `"OutQuad"` | Quadratic out |
+| `"InOutQuad"` | Quadratic in-out |
+| `"InCubic"` | Cubic in |
+| `"OutCubic"` | Cubic out |
+| `"InOutCubic"` | Cubic in-out |
+| `"InQuart"` | Quartic in |
+| `"OutQuart"` | Quartic out |
+| `"InOutQuart"` | Quartic in-out |
+| `"InQuint"` | Quintic in |
+| `"OutQuint"` | Quintic out |
+| `"InOutQuint"` | Quintic in-out |
+| `"InSine"` | Sinusoidal in |
+| `"OutSine"` | Sinusoidal out |
+| `"InOutSine"` | Sinusoidal in-out |
+| `"InExpo"` | Exponential in |
+| `"OutExpo"` | Exponential out |
+| `"InOutExpo"` | Exponential in-out |
+| `"InCirc"` | Circular in |
+| `"OutCirc"` | Circular out |
+| `"InOutCirc"` | Circular in-out |
+| `"InElastic"` | Elastic in (overshoot) |
+| `"OutElastic"` | Elastic out |
+| `"OutElasticHalf"` | Elastic out, half amplitude |
+| `"OutElasticQuarter"` | Elastic out, quarter amplitude |
+| `"InOutElastic"` | Elastic in-out |
+| `"InBack"` | Back in (slight pullback) |
+| `"OutBack"` | Back out (slight overshoot) |
+| `"InOutBack"` | Back in-out |
+| `"InBounce"` | Bounce in |
+| `"OutBounce"` | Bounce out |
+| `"InOutBounce"` | Bounce in-out |
+| `"OutPow10"` | Power-10 ease-out (very snappy) |
+
+</Accordion>
+
+---
+
+## `mathf` — Math Utilities
+
+The `mathf` global is an instance of `LuaMath`. It exposes every operation you would expect from a game math library, including constants, scalar functions, trigonometry, and a full suite of 2D vector operations.
+
+### Constants
+
+| Field | Value |
+|---|---|
+| `mathf.pi` | π ≈ 3.14159… |
+| `mathf.tau` | τ = 2π ≈ 6.28318… |
+| `mathf.e` | Euler's number ≈ 2.71828… |
+
+### Scalar Functions
+
+<Tabs>
+  <Tab title="Basic">
+
+| Function | Description |
+|---|---|
+| `mathf:abs(d)` | Absolute value |
+| `mathf:clamp(value, min, max)` | Clamps `value` between `min` and `max` |
+| `mathf:min(a, b)` | Smaller of two values |
+| `mathf:max(a, b)` | Larger of two values |
+| `mathf:sign(d)` | -1 / 0 / 1 depending on sign |
+| `mathf:floor(d)` | Floor to integer |
+| `mathf:floort(d, threshold)` | Floor only if `d >= threshold`, else return `d` unchanged |
+| `mathf:ceil(d)` | Ceiling to integer |
+| `mathf:ceilt(d, threshold)` | Ceiling only if `d <= threshold`, else return `d` unchanged |
+| `mathf:round(d)` | Round to nearest integer |
+| `mathf:roundt(d, threshold)` | Round only if within `threshold` of a whole number |
+| `mathf:sqrt(d)` | Square root |
+| `mathf:pow(x, y)` | `x` raised to the power `y` |
+| `mathf:exp(d)` | e raised to `d` |
+| `mathf:log(d)` | Natural logarithm (base e) |
+| `mathf:log10(d)` | Base-10 logarithm |
+| `mathf:lerp(a, b, t)` | Linear interpolation: `a + (b-a)*t` |
+
+  </Tab>
+  <Tab title="Trigonometry">
+
+| Function | Description |
+|---|---|
+| `mathf:sin(radians)` | Sine |
+| `mathf:cos(radians)` | Cosine |
+| `mathf:tan(radians)` | Tangent |
+| `mathf:asin(value)` | Arcsine → radians in [-π/2, π/2] |
+| `mathf:acos(value)` | Arccosine → radians in [0, π] |
+| `mathf:atan(value)` | Arctangent → radians in [-π/2, π/2] |
+| `mathf:atan2(x, y)` | Two-argument arctangent → radians in [-π, π] |
+| `mathf:deg(radians)` | Radians → degrees |
+| `mathf:rad(degrees)` | Degrees → radians |
+| `mathf:sinh(radians)` | Hyperbolic sine |
+| `mathf:cosh(radians)` | Hyperbolic cosine |
+| `mathf:tanh(radians)` | Hyperbolic tangent |
+
+  </Tab>
+  <Tab title="Vector2 Ops">
+
+| Function | Description |
+|---|---|
+| `mathf:vecadd(a, b)` | Component-wise addition |
+| `mathf:vecsub(a, b)` | Component-wise subtraction |
+| `mathf:vecmul(a, scalar)` | Scale by scalar |
+| `mathf:vecdot(a, b)` | Dot product |
+| `mathf:veclen(v)` | Euclidean length |
+| `mathf:vecnorm(v)` | Normalise to unit length |
+| `mathf:vecrotate(v, angle)` | Rotate by `angle` radians |
+| `mathf:vecrotatearound(a, b, angle)` | Rotate point `a` around point `b` by `angle` radians |
+| `mathf:vecequals(a, b, diff)` | True if vectors are within `diff` of each other |
+| `mathf:vecangle(v)` | Angle of the vector in radians |
+| `mathf:vecanglebetween(a, b)` | Angle between two vectors in radians |
+| `mathf:vecdist(a, b)` | Distance between two points |
+| `mathf:vecisnorm(v, diff)` | True if the vector is (approximately) unit length |
+| `mathf:veciszero(v, diff)` | True if the vector is (approximately) zero |
+| `mathf:vecabs(v)` | Absolute value of both components |
+
+  </Tab>
+</Tabs>
+
+```lua
+-- orbit a point in a circle over time
+local cx = screen.x / 2
+local cy = screen.y / 2
+local radius = 120
+
+for i = 0, 7 do
+  local angle = mathf:rad(i * 45)  -- evenly spaced
+  local pos   = mathf:vecadd(
+    Vector2(cx, cy),
+    mathf:vecmul(Vector2(mathf:cos(angle), mathf:sin(angle)), radius)
+  )
+  local box = StoryboardBox()
+  box.x = pos.x
+  box.y = pos.y
+  box.time = 0
+  box.endtime = 8000
+  box.width  = 20
+  box.height = 20
+  box.anchor = Anchor("Centre")
+  box.origin = Anchor("Centre")
+  Add(box)
+end
+```
+
+---
+
+## `FFTParameters` — Audio Analysis Presets
+
+`FFTParameters` is a global object that holds three pre-configured parameter sets for audio frequency analysis. Pass one of these to `AudioAnalyzer:AmplitudesInRange()` as the optional fifth argument.
+
+| Preset | Description |
+|---|---|
+| `FFTParameters.Default` | Balanced settings suitable for most maps |
+| `FFTParameters.Reactive` | High attack and fast decay — snappy, closely follows transients |
+| `FFTParameters.Smooth` | Slower attack and gentler decay — good for ambient or sustained effects |
+
+You can also build a fully custom `FFTParameters` table by setting individual fields. All fields are numbers unless noted:
+
+<Accordion title="All FFTParameters Fields">
+
+<ParamField path="attack" type="number">
+  How fast amplitude values rise. High values (e.g. 0.95) are instant; low values (e.g. 0.50) look slightly delayed.
+</ParamField>
+<ParamField path="releaseLow" type="number">
+  How fast the bass band falls after a peak. Low values (0.05) cause slow decay; high values (0.40) make kicks end sharply.
+</ParamField>
+<ParamField path="releaseHigh" type="number">
+  How fast the treble band falls. High values can cause jitter on cymbals.
+</ParamField>
+<ParamField path="gamma" type="number">
+  Contrast exponent applied to final amplitudes (`value^gamma`). Values below 1 boost quiet noise; values above 2 isolate only loud peaks.
+</ParamField>
+<ParamField path="spatialWindowSize" type="number">
+  Number of adjacent bins to average. Value of 1 means no smoothing; values above 5 produce a smooth curve.
+</ParamField>
+<ParamField path="bassCutoff" type="number">
+  Frequency spectrum position [0–1] where bass ends and mid begins.
+</ParamField>
+<ParamField path="midCutoff" type="number">
+  Frequency spectrum position [0–1] where mid ends and high begins.
+</ParamField>
+<ParamField path="bassMultiplier" type="number">
+  Boost/attenuate the bass band. Values above 1.0 intensify kick and bass; below 1.0 reduce them.
+</ParamField>
+<ParamField path="midMultiplier" type="number">
+  Boost/attenuate the mid band (vocals, synths, guitars).
+</ParamField>
+<ParamField path="highMultiplier" type="number">
+  Boost/attenuate the high band (hi-hats, cymbals, treble).
+</ParamField>
+<ParamField path="baseFloor" type="number">
+  Minimum peak volume for bass before auto-normalisation kicks in.
+</ParamField>
+<ParamField path="midFloor" type="number">
+  Minimum peak volume for mid before auto-normalisation kicks in.
+</ParamField>
+<ParamField path="highFloor" type="number">
+  Minimum peak volume for high before auto-normalisation kicks in.
+</ParamField>
+<ParamField path="maxAdaptationRate" type="number">
+  How fast dynamic auto-levelling adapts to the current volume. Low values preserve loudness contrast; high values keep output consistent.
+</ParamField>
+
+</Accordion>
+
+---
+
+## `AudioAnalyzer` — Frequency Analysis
+
+The `AudioAnalyzer` global (available in storyboard scripts) provides pre-computed FFT data for the entire map audio track. Because storyboard scripts run once before gameplay starts, all audio data is available up front for the full map duration.
+
+### `AudioAnalyzer:AmplitudesInRange(startTime, endTime, interval, amplitudeCount, parameters)`
+
+Returns a Lua table of `FFTFrame` objects, one per interval step between `startTime` and `endTime`.
+
+<ParamField path="startTime" type="number" required>Start of the time range in milliseconds.</ParamField>
+<ParamField path="endTime" type="number" required>End of the time range in milliseconds.</ParamField>
+<ParamField path="interval" type="number" required>How many milliseconds apart each sample is. For example `16` gives ~60 fps resolution.</ParamField>
+<ParamField path="amplitudeCount" type="number">
+  Number of frequency bins per frame. Defaults to the engine's FFT bin count. Fewer bins are faster and produce a coarser spectrum.
+</ParamField>
+<ParamField path="parameters" type="FFTParameters">
+  Optional FFT processing parameters. Defaults to `FFTParameters.Default` when omitted.
+</ParamField>
+
+### `FFTFrame` Fields and Methods
+
+Each entry in the returned table is an `FFTFrame`:
+
+<ParamField path="amplitudes" type="number[]">
+  Array of amplitude values, one per frequency bin. Index 1 = bass, last index = treble.
+</ParamField>
+<ParamField path="bands" type="FFTBands">
+  Frequency band summary object with `.low`, `.mid`, `.high`, and `.total` fields (all numbers, 0–1).
+</ParamField>
+
+| Method | Returns | Description |
+|---|---|---|
+| `frame:IsSilent(threshold)` | `boolean` | True if all amplitudes are below `threshold` |
+| `frame:DetectBeat(threshold)` | `boolean` | True if the frame's energy exceeds `threshold` — useful for beat detection |
+| `frame:GetPeakAmplitude()` | `number` | Highest amplitude value across all bins |
+| `frame:GetAverageAmplitude()` | `number` | Mean amplitude across all bins |
+| `frame:GetPeakFrequencyBin()` | `number` | Index of the bin with the highest amplitude |
+
+`FFTBands:GetDominantBand()` returns the numeric index (0=low, 1=mid, 2=high) of whichever band has the most energy.
+
+```lua
+SetVersion(2)
+
+function process(parent)
+  local frames = AudioAnalyzer:AmplitudesInRange(0, 60000, 16, 32, FFTParameters.Reactive)
+
+  for i, frame in ipairs(frames) do
+    if frame:DetectBeat(0.6) then
+      local t = (i - 1) * 16  -- approx time of this frame
+
+      local flash = StoryboardBox()
+      flash.layer   = Layer("Overlay")
+      flash.time    = t
+      flash.endtime = t + 200
+      flash.x = 0
+      flash.y = 0
+      flash.width  = screen.x
+      flash.height = screen.y
+      flash.color  = 0xFFFFFFFF
+      flash:animate("Fade", 0, 200, "0.4", "0", Easing("OutQuad"))
+      Add(flash)
+    end
+  end
+end
+```
+
+---
+
+## `map` — Map Data Access
+
+The `map` global is available in storyboard scripts and exposes five query methods. All return a Lua table (array) of the matching objects.
+
+<ParamField path="map:NotesInRange(startTime, endTime, type?)" type="HitObject[]">
+  All hit objects between `startTime` and `endTime`. Optional `type` filters by `"Normal"`, `"Tick"`, or `"Landmine"`. Note that `"Normal"` also returns long notes.
+</ParamField>
+<ParamField path="map:TimingPointsInRange(startTime, endTime)" type="TimingPoint[]">
+  All timing points active in the range. Each has `.time`, `.bpm`, `.signature`, and `.hideLines`.
+</ParamField>
+<ParamField path="map:ScrollVelocitiesInRange(startTime, endTime)" type="ScrollVelocity[]">
+  All scroll velocity changes in the range. Each has `.time`, `.multiplier`, `.group`, `.groups`, and `.laneMask`.
+</ParamField>
+<ParamField path="map:HitSoundFadesInRange(startTime, endTime)" type="HitSoundFade[]">
+  All hit-sound volume fade events in the range.
+</ParamField>
+<ParamField path="map:EventsInRange(startTime, endTime, eventType)" type="table">
+  All storyboard events of the given `EventType` string in the range.
+</ParamField>
+
+```lua
+-- spawn a text label above every note in the first 10 seconds
+local notes = map:NotesInRange(0, 10000)
+for _, note in ipairs(notes) do
+  local lbl = StoryboardText()
+  lbl.layer   = Layer("Foreground")
+  lbl.time    = note.time
+  lbl.endtime = note.time + 500
+  lbl.text    = "Lane " .. note.lane
+  lbl.size    = 18
+  lbl.x       = 50 + (note.lane - 1) * 60
+  lbl.y       = screen.y / 2
+  lbl.anchor  = Anchor("Centre")
+  lbl.origin  = Anchor("Centre")
+  Add(lbl)
+end
+```
+
+### `HitObject` Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `time` | number | Hit time in milliseconds |
+| `lane` | number | Column index (1-based) |
+| `visualLane` | number | Visual lane (tick notes only) |
+| `holdTime` | number | Long note duration in ms (0 for normal notes) |
+| `hitSound` | string | Name of the assigned hit sound |
+| `group` | string | Group tag |
+| `hidden` | boolean | Whether the note is hidden |
+| `type` | number | Numeric hit object type |

@@ -1,0 +1,606 @@
+---
+title: "Map Events: Visual Effects, Shaders, and Animations"
+sidebarTitle: "Events"
+description: "fluXis maps support 19 event types: flashes, color fades, shaders, playfield transforms, lane switches, and beat pulses, all keyed by millisecond time."
+---
+
+Map events are the visual layer of a fluXis map. While hit objects and timing points define **when to play**, events define **what to show** — screen flashes, colour shifts, playfield rotations, shader overlays, camera moves, and much more. Events live in a **separate file** referenced by the map's `EffectFile` property (typically a `.fse` file), and they are loaded and sorted by time before gameplay begins. Every event shares the same base property (`time`) and many also carry `group`, `duration`, and `ease` fields for smooth animated transitions.
+
+<Note>
+  All `time` values are in **milliseconds** from the start of the audio track — the same coordinate space as hit objects and timing points. Events are sorted by time on load, so their order in the JSON file does not matter.
+</Note>
+
+## Effect file structure
+
+The `.fse` file is a plain JSON object whose keys correspond to event-type arrays:
+
+```json
+{
+  "flash": [],
+  "laneswitch": [],
+  "colorfade": [],
+  "pulse": [],
+  "shader": [],
+  "shake": [],
+  "beatpulse": [],
+  "playfieldmove": [],
+  "playfieldscale": [],
+  "playfieldrotate": [],
+  "layerfade": [],
+  "hitease": [],
+  "scroll-multiply": [],
+  "time-offset": [],
+  "camera-move": [],
+  "camera-scale": [],
+  "camera-rotate": [],
+  "loops": [],
+  "notes": []
+}
+```
+
+Any array may be omitted or left empty; the engine initialises missing lists to empty on load.
+
+---
+
+## Common fields
+
+Nearly every event type includes the following properties:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `time` | `number` | Trigger time in milliseconds (required). |
+| `group` | `string` | Optional event group name for use with `LoopEvent`. Omitted from JSON when empty. |
+| `duration` | `number` | Length of the animated transition in milliseconds (`0` = instant). |
+| `ease` | `Easing` | osu-framework easing function (integer or string). `0` = `None` (linear). |
+
+---
+
+## Event types
+
+<Accordion title="flash — Screen Flash">
+  A screen flash overlays a solid or fading colour rectangle across the entire screen (or behind the playfield). It animates from a start colour/opacity to an end colour/opacity over `duration` milliseconds.
+
+  **JSON key:** `flash`
+
+  ```json
+  {
+    "time": 4000,
+    "duration": 500,
+    "background": false,
+    "ease": 0,
+    "start-color": "#FFFFFF",
+    "start-alpha": 1.0,
+    "end-color": "#FFFFFF",
+    "end-alpha": 0.0
+  }
+  ```
+
+  <ParamField body="background" type="boolean" default="false">
+    When `true`, the flash renders behind the playfield (background layer). When `false`, it renders in front of everything.
+  </ParamField>
+  <ParamField body="start-color" type="string">
+    Hex colour string for the beginning of the transition (default `#FFFFFF`).
+  </ParamField>
+  <ParamField body="start-alpha" type="float">
+    Opacity at the start of the transition (`0.0`–`1.0`, default `1.0`).
+  </ParamField>
+  <ParamField body="end-color" type="string">
+    Hex colour string for the end of the transition (default `#FFFFFF`).
+  </ParamField>
+  <ParamField body="end-alpha" type="float">
+    Opacity at the end of the transition (`0.0`–`1.0`, default `0.0`).
+  </ParamField>
+</Accordion>
+
+<Accordion title="laneswitch — Lane Count Change">
+  Dynamically changes the number of active lanes mid-map. The transition is animated over `speed` milliseconds using the specified `easing`. This is the mechanism behind variable-keymode maps (e.g. alternating between 4K and 7K sections).
+
+  **JSON key:** `laneswitch`
+
+  ```json
+  {
+    "time": 16000,
+    "count": 6,
+    "speed": 300,
+    "easing": 12
+  }
+  ```
+
+  <ParamField body="count" type="integer" required>
+    The target lane count to switch to. Must be within the keymode range supported by the map.
+  </ParamField>
+  <ParamField body="speed" type="number" default="0">
+    Duration of the lane-width animation in milliseconds. `0` means an instant switch.
+  </ParamField>
+  <ParamField body="easing" type="Easing" default="OutQuint">
+    Easing function for the width animation. Defaults to `OutQuint` (value `12`).
+  </ParamField>
+
+  <Note>
+    Set `ls-v2: true` in the `.fsc` file to use the improved visibility algorithm that correctly maps finger positions during the switch. All maps created with the modern editor have this flag set automatically.
+  </Note>
+</Accordion>
+
+<Accordion title="colorfade — Note Color Transition">
+  Smoothly fades one or more of the three lane colour roles (primary, secondary, middle) to a new hex colour. The transition respects `duration` and `ease`. Only colour roles with their `fade-*` flag set to `true` are affected.
+
+  **JSON key:** `colorfade`
+
+  ```json
+  {
+    "time": 8000,
+    "fade-primary": true,
+    "primary": "#FF4466",
+    "fade-secondary": false,
+    "secondary": "#FFFFFF",
+    "fade-middle": false,
+    "middle": "#FFFFFF",
+    "duration": 1000,
+    "ease": 0,
+    "playfield": 0,
+    "subfield": 0
+  }
+  ```
+
+  <ParamField body="fade-primary" type="boolean" default="false">
+    When `true`, the primary lane colour is transitioned.
+  </ParamField>
+  <ParamField body="primary" type="Color4">
+    Target colour for the primary role.
+  </ParamField>
+  <ParamField body="fade-secondary" type="boolean" default="false">
+    When `true`, the secondary lane colour is transitioned.
+  </ParamField>
+  <ParamField body="secondary" type="Color4">
+    Target colour for the secondary role.
+  </ParamField>
+  <ParamField body="fade-middle" type="boolean" default="false">
+    When `true`, the middle lane colour is transitioned.
+  </ParamField>
+  <ParamField body="middle" type="Color4">
+    Target colour for the middle role.
+  </ParamField>
+  <ParamField body="playfield" type="integer" default="0">
+    Zero-based index of the playfield to target. `0` = primary playfield.
+  </ParamField>
+  <ParamField body="subfield" type="integer" default="0">
+    Sub-playfield index for split/mirrored dual-mode maps.
+  </ParamField>
+</Accordion>
+
+<Accordion title="pulse — Border Pulse">
+  Expands and contracts a border ring around the playfield, creating a "pulse" effect. The ring grows to `width` pixels over the in-phase (`in-percent * duration`) and shrinks back to zero for the remainder of `duration`.
+
+  **JSON key:** `pulse`
+
+  ```json
+  {
+    "time": 2000,
+    "width": 32,
+    "duration": 400,
+    "in-percent": 0.25,
+    "easing": 0
+  }
+  ```
+
+  <ParamField body="width" type="float" default="32">
+    Maximum border thickness in pixels at the peak of the pulse.
+  </ParamField>
+  <ParamField body="duration" type="number" default="0">
+    Total duration of the pulse animation in milliseconds.
+  </ParamField>
+  <ParamField body="in-percent" type="float" default="0">
+    Fraction of `duration` used for the expand phase (`0.0`–`1.0`). The remaining fraction is used for the collapse.
+  </ParamField>
+</Accordion>
+
+<Accordion title="shake — Screen Shake">
+  Rapidly displaces the entire gameplay view in a random direction for the given duration, simulating an impact or explosion. Magnitude controls the maximum displacement distance.
+
+  **JSON key:** `shake`
+
+  ```json
+  {
+    "time": 5000,
+    "duration": 600,
+    "magnitude": 15
+  }
+  ```
+
+  <ParamField body="duration" type="number" required>
+    How long the shake lasts in milliseconds.
+  </ParamField>
+  <ParamField body="magnitude" type="float" default="10">
+    Maximum displacement in pixels per shake frame. Higher values produce a more violent effect.
+  </ParamField>
+</Accordion>
+
+<Accordion title="shader — Post-Process Shader">
+  Applies or animates a full-screen post-processing shader effect. Each shader has up to three independent `strength` parameters whose meanings vary by shader type. The transition can animate from `start-params` to `end-params` over `duration` milliseconds.
+
+  **JSON key:** `shader`
+
+  ```json
+  {
+    "time": 10000,
+    "shader": "Bloom",
+    "duration": 1000,
+    "ease": 0,
+    "use-start": true,
+    "start-params": { "strength": 0.0 },
+    "end-params":   { "strength": 0.8 }
+  }
+  ```
+
+  <ParamField body="shader" type="string" required>
+    Name of the shader to apply. Valid values (from `ShaderType` enum):
+
+    | Name | Description |
+    |------|-------------|
+    | `Bloom` | Additive glow around bright elements |
+    | `Greyscale` | Desaturates the screen |
+    | `Invert` | Inverts all colours |
+    | `Chromatic` | Chromatic aberration (RGB fringe) |
+    | `Mosaic` | Pixelation / mosaic tile effect |
+    | `Noise` | Film grain / noise overlay |
+    | `Vignette` | Dark vignette around screen edges |
+    | `Retro` | Scanline retro CRT effect |
+    | `HueShift` | Rotates hue of the entire screen |
+    | `Glitch` | Glitch blocks — strength1=X, strength2=Y, strength3=block size |
+    | `SplitScreen` | Tiled mirror — strength2=splits X, strength3=splits Y |
+    | `FishEye` | Fisheye lens distortion |
+    | `Reflections` | Recursive reflections — strength2=scale |
+    | `Glitch2` | Secondary glitch — strength1=amount, strength2=speed |
+  </ParamField>
+  <ParamField body="use-start" type="boolean" default="false">
+    When `true`, the shader is instantly set to `start-params` before animating to `end-params`.
+  </ParamField>
+  <ParamField body="start-params" type="object">
+    Initial shader parameter values when `use-start` is `true`.
+  </ParamField>
+  <ParamField body="end-params" type="object">
+    Target shader parameter values after the transition. Contains `strength`, `strength2`, and `strength3` floats.
+  </ParamField>
+</Accordion>
+
+<Accordion title="beatpulse — Periodic Zoom Pulse">
+  Creates a repeating zoom-in/zoom-out pulse that syncs to the beat. The playfield scales up to `strength` and returns to normal, repeating every `interval` beats for as long as the event is active.
+
+  **JSON key:** `beatpulse`
+
+  ```json
+  {
+    "time": 0,
+    "strength": 1.05,
+    "zoom": 0.25,
+    "interval": 1
+  }
+  ```
+
+  <ParamField body="strength" type="float" default="1.05">
+    Scale factor at the peak of each pulse (e.g. `1.05` = 5% zoom-in).
+  </ParamField>
+  <ParamField body="zoom" type="float" default="0.25">
+    Fraction of the beat interval spent zooming **in**. The remaining fraction is used to zoom back out. Value is `0.0`–`1.0`.
+  </ParamField>
+  <ParamField body="interval" type="float" default="1">
+    How many beats between each pulse repetition. `1` = every beat, `2` = every other beat, `0.5` = twice per beat.
+  </ParamField>
+</Accordion>
+
+<Accordion title="layerfade — Playfield Layer Fade">
+  Fades the opacity of a specific visual layer within a playfield. Useful for hiding notes, the stage background, receptor keys, or the entire playfield.
+
+  **JSON key:** `layerfade`
+
+  ```json
+  {
+    "time": 30000,
+    "duration": 500,
+    "alpha": 0.0,
+    "ease": 0,
+    "layer": 0,
+    "playfield": 0,
+    "subfield": 0
+  }
+  ```
+
+  <ParamField body="alpha" type="float" required>
+    Target opacity (`0.0` = fully transparent, `1.0` = fully opaque).
+  </ParamField>
+  <ParamField body="layer" type="integer (FadeLayer)" default="0">
+    Which layer to fade:
+
+    | Value | Name | Description |
+    |-------|------|-------------|
+    | `0` | `HitObjects` | The note/hold rendering layer |
+    | `1` | `Stage` | The playfield stage background |
+    | `2` | `Receptors` | The receptor key indicators |
+    | `3` | `Playfield` | The entire playfield |
+    | `4` | `HUD` | The score / health HUD overlay |
+  </ParamField>
+  <ParamField body="playfield" type="integer" default="0">
+    Zero-based index of the target playfield.
+  </ParamField>
+  <ParamField body="subfield" type="integer" default="0">
+    Sub-playfield index for dual-mode maps.
+  </ParamField>
+</Accordion>
+
+<Accordion title="playfieldmove — Playfield Position">
+  Animates the playfield's position by offsetting it along the X, Y, and Z axes. All three axes transition simultaneously over `duration` using the given easing.
+
+  **JSON key:** `playfieldmove`
+
+  ```json
+  {
+    "time": 12000,
+    "x": 100,
+    "y": 0,
+    "z": 0,
+    "duration": 800,
+    "ease": 12,
+    "playfield": 0,
+    "subfield": 0
+  }
+  ```
+
+  <ParamField body="x" type="float" default="0">
+    Horizontal offset in pixels. Positive moves the playfield right.
+  </ParamField>
+  <ParamField body="y" type="float" default="0">
+    Vertical offset in pixels. Positive moves the playfield down.
+  </ParamField>
+  <ParamField body="z" type="float" default="0">
+    Depth offset (reserved for future 3D support). Currently has no visual effect.
+  </ParamField>
+  <ParamField body="playfield" type="integer" default="0">
+    Zero-based index of the target playfield.
+  </ParamField>
+</Accordion>
+
+<Accordion title="playfieldscale — Playfield Scale">
+  Animates the playfield's scale on X and Y axes independently. Values above `1.0` enlarge the playfield; values below `1.0` shrink it.
+
+  **JSON key:** `playfieldscale`
+
+  ```json
+  {
+    "time": 16000,
+    "x": 1.2,
+    "y": 1.0,
+    "duration": 600,
+    "ease": 12,
+    "playfield": 0,
+    "subfield": 0
+  }
+  ```
+
+  <ParamField body="x" type="float" default="1">
+    Horizontal scale factor. `1.0` = normal width.
+  </ParamField>
+  <ParamField body="y" type="float" default="1">
+    Vertical scale factor. `1.0` = normal height.
+  </ParamField>
+</Accordion>
+
+<Accordion title="playfieldrotate — Playfield Rotation">
+  Rotates the entire playfield around its centre point. The rotation is expressed in degrees and animated over `duration`.
+
+  **JSON key:** `playfieldrotate`
+
+  ```json
+  {
+    "time": 20000,
+    "roll": 45,
+    "duration": 1000,
+    "ease": 12,
+    "playfield": 0,
+    "subfield": 0
+  }
+  ```
+
+  <ParamField body="roll" type="float" default="0">
+    Rotation angle in degrees. Positive values rotate clockwise. The playfield snaps back to `0` only if another `playfieldrotate` event explicitly sets it.
+  </ParamField>
+</Accordion>
+
+<Accordion title="hitease — Hit Object Easing">
+  Changes the easing function applied to how hit objects approach the judgement line within their scroll group. This affects the visual feel of note movement — e.g. notes can accelerate in (`InQuad`) or decelerate out (`OutQuad`).
+
+  **JSON key:** `hitease`
+
+  ```json
+  {
+    "time": 24000,
+    "ease": 3
+  }
+  ```
+
+  <ParamField body="ease" type="Easing" required>
+    Any valid osu-framework `Easing` enum value. `0` = `None` (linear movement, the default).
+  </ParamField>
+</Accordion>
+
+<Accordion title="scroll-multiply — Scroll Speed Multiplier (Animated)">
+  Animates the scroll-speed multiplier for a named scroll group from its current value to `multiplier` over `duration` ms. Unlike a static `ScrollVelocity`, this provides a smooth eased transition between speeds.
+
+  **JSON key:** `scroll-multiply`
+
+  ```json
+  {
+    "time": 32000,
+    "multiplier": 2.0,
+    "duration": 500,
+    "ease": 0,
+    "groups": ["fast-layer"]
+  }
+  ```
+
+  <ParamField body="multiplier" type="float" default="1">
+    Target scroll speed multiplier.
+  </ParamField>
+  <ParamField body="groups" type="string[]">
+    Named scroll groups to apply the multiplier to. Empty array targets the default group.
+  </ParamField>
+</Accordion>
+
+<Accordion title="time-offset — Visual Time Offset">
+  Shifts the visual arrival time of all hit objects, making notes appear to arrive earlier or later on screen. Useful for creating rush/delay gimmicks where notes visually drift toward or away from the receptor while being hit on time musically.
+
+  **JSON key:** `time-offset`
+
+  ```json
+  {
+    "time": 40000,
+    "offset": 200,
+    "duration": 1000,
+    "use-start": false,
+    "start-offset": 0,
+    "ease": 0
+  }
+  ```
+
+  <ParamField body="offset" type="number" required>
+    Target visual time offset in milliseconds. Positive = notes appear earlier (rushed); negative = notes appear later (delayed).
+  </ParamField>
+  <ParamField body="use-start" type="boolean" default="false">
+    When `true`, the offset snaps to `start-offset` before animating to `offset`.
+  </ParamField>
+  <ParamField body="start-offset" type="number" default="0">
+    Initial offset when `use-start` is `true`.
+  </ParamField>
+</Accordion>
+
+<Accordion title="camera-move — Camera Position">
+  Moves the game camera (the outer viewport transform) to a new X/Y position over `duration` milliseconds. Operates on a layer above all playfields.
+
+  **JSON key:** `camera-move`
+
+  ```json
+  {
+    "time": 50000,
+    "x": 50,
+    "y": -30,
+    "duration": 800,
+    "ease": 0
+  }
+  ```
+
+  <ParamField body="x" type="float" default="0">
+    Horizontal camera offset in pixels.
+  </ParamField>
+  <ParamField body="y" type="float" default="0">
+    Vertical camera offset in pixels.
+  </ParamField>
+</Accordion>
+
+<Accordion title="camera-scale — Camera Zoom">
+  Scales the camera viewport uniformly, zooming in or out on all playfields at once.
+
+  **JSON key:** `camera-scale`
+
+  ```json
+  {
+    "time": 52000,
+    "scale": 1.15,
+    "duration": 600,
+    "ease": 0
+  }
+  ```
+
+  <ParamField body="scale" type="float" default="1">
+    Uniform scale factor. `1.0` = no zoom, `1.5` = 50% zoom in, `0.8` = slight zoom out.
+  </ParamField>
+</Accordion>
+
+<Accordion title="camera-rotate — Camera Rotation">
+  Rotates the entire camera viewport around its centre. All playfields and UI elements rotate together.
+
+  **JSON key:** `camera-rotate`
+
+  ```json
+  {
+    "time": 54000,
+    "roll": -10,
+    "duration": 800,
+    "ease": 0
+  }
+  ```
+
+  <ParamField body="roll" type="float" default="0">
+    Rotation angle in degrees. Positive = clockwise.
+  </ParamField>
+</Accordion>
+
+<Accordion title="loops — Loop Group">
+  Repeats a named group of events a given number of times, each occurrence offset by `distance` milliseconds. This is a compile-time directive — when the effect file is loaded the engine expands all loop events into their constituent copies before sorting.
+
+  **JSON key:** `loops`
+
+  ```json
+  {
+    "time": 60000,
+    "target": "my-flash-group",
+    "distance": 500,
+    "count": 8
+  }
+  ```
+
+  <ParamField body="target" type="string" required>
+    The `group` name of the events to repeat. All events with a matching `group` field will be copied.
+  </ParamField>
+  <ParamField body="distance" type="number" required>
+    Time offset in milliseconds between successive loop iterations.
+  </ParamField>
+  <ParamField body="count" type="integer" required>
+    How many times to repeat the group (not including the original).
+  </ParamField>
+</Accordion>
+
+<Accordion title="notes — Note Events (Subtitles)">
+  Displays a text string on screen at a specific time. Used for subtitles, karaoke lyrics, or in-game annotations. Content is free-form text.
+
+  **JSON key:** `notes`
+
+  ```json
+  {
+    "time": 5000,
+    "content": "Welcome to fluXis!"
+  }
+  ```
+
+  <ParamField body="content" type="string" required>
+    The text string to display on screen.
+  </ParamField>
+</Accordion>
+
+---
+
+## Quick-reference table
+
+| JSON key | C# class | Primary purpose |
+|----------|----------|-----------------|
+| `flash` | `FlashEvent` | Full-screen colour overlay |
+| `laneswitch` | `LaneSwitchEvent` | Dynamic lane count changes |
+| `colorfade` | `ColorFadeEvent` | Animate lane note colours |
+| `pulse` | `PulseEvent` | Expanding border ring |
+| `shake` | `ShakeEvent` | Screen shake on impact |
+| `shader` | `ShaderEvent` | Post-process shader effects |
+| `beatpulse` | `BeatPulseEvent` | Periodic zoom pulse |
+| `layerfade` | `LayerFadeEvent` | Fade individual playfield layers |
+| `playfieldmove` | `PlayfieldMoveEvent` | Translate playfield position |
+| `playfieldscale` | `PlayfieldScaleEvent` | Scale playfield dimensions |
+| `playfieldrotate` | `PlayfieldRotateEvent` | Rotate playfield |
+| `hitease` | `HitObjectEaseEvent` | Change note scroll easing |
+| `scroll-multiply` | `ScrollMultiplierEvent` | Animated scroll speed |
+| `time-offset` | `TimeOffsetEvent` | Visual note arrival offset |
+| `camera-move` | `CameraMoveEvent` | Move camera viewport |
+| `camera-scale` | `CameraScaleEvent` | Zoom camera |
+| `camera-rotate` | `CameraRotateEvent` | Rotate camera |
+| `loops` | `LoopEvent` | Repeat event groups |
+| `notes` | `NoteEvent` | On-screen text |
+
+<Tip>
+  The `group` field on any event combined with a `LoopEvent` lets you build complex repeating patterns (e.g. a flash every beat for 8 bars) with a single compact declaration rather than dozens of individual entries.
+</Tip>

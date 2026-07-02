@@ -1,0 +1,179 @@
+---
+title: "Timing Points, Scroll Velocities, and Hit-Sound Fades"
+sidebarTitle: "Timing"
+description: "Timing points define BPM and offset for a map section. Scroll velocities multiply playfield scroll speed. Learn the JSON schema and how they interact."
+---
+
+Timing is what turns a raw list of hit objects into a rhythmically coherent map. fluXis uses three complementary systems: **timing points** that anchor BPM and time-signature information to specific moments in the audio, **scroll velocities** that independently control how fast notes travel down the playfield, and **hit-sound fades** that automate the volume of individual hit-sound channels over time. All three systems live inside the root `.fsc` file and are sorted by time on load.
+
+<Note>
+  All `time` values are in **milliseconds** from the start of the audio track. The engine uses millisecond precision for all calculations, so fractional values are fully supported.
+</Note>
+
+---
+
+## Timing Points
+
+A timing point marks the beginning of a new BPM section. Every map must have at least one. The engine walks the sorted `TimingPoints` list and applies whichever point most recently precedes a given moment — there is no interpolation between timing points. This means a BPM change takes effect **instantly** at the given time.
+
+### JSON schema
+
+<ParamField body="time" type="number" required>
+  The moment in the song, in milliseconds, at which this BPM section begins. The very first timing point typically starts at `0`, though a negative offset is allowed to account for audio lead-in before the first beat.
+</ParamField>
+
+<ParamField body="bpm" type="float" required>
+  Beats per minute for this section. Must be strictly greater than `0`. The engine derives milliseconds-per-beat as `60000 / bpm`.
+</ParamField>
+
+<ParamField body="signature" type="integer" default="4">
+  The **numerator** of the time signature — i.e. the number of beats per measure (e.g. `4` for 4/4, `3` for 3/4, `7` for 7/8). Must be strictly greater than `0`. The editor uses this value to draw beat lines and snap notes correctly. The denominator is always implicitly 4 (quarter-note beat).
+</ParamField>
+
+<ParamField body="hide-lines" type="boolean" default="false">
+  When `true`, the beat and measure grid lines drawn from this timing point onward are hidden during gameplay. Useful for sections where visual lines would be distracting without changing playback timing.
+</ParamField>
+
+### Derived runtime values
+
+<ResponseField name="MsPerBeat" type="float">
+  Computed as `60000 / bpm`. Not stored in the file; calculated on load. Used by the editor grid, scroll-velocity calculations, and beat-synced events.
+</ResponseField>
+
+### Example — single BPM
+
+```json
+"TimingPoints": [
+  { "time": 0, "bpm": 174, "signature": 4 }
+]
+```
+
+### Example — BPM change mid-song
+
+```json
+"TimingPoints": [
+  { "time": 0,      "bpm": 120, "signature": 4 },
+  { "time": 32000,  "bpm": 160, "signature": 4 },
+  { "time": 96000,  "bpm": 160, "signature": 3, "hide-lines": true }
+]
+```
+
+<Tip>
+  When you add a timing point, every hit object and scroll velocity that follows it is now measured against the new BPM. Place timing points **exactly** on the first beat of the new section for the grid snapping to work correctly.
+</Tip>
+
+---
+
+## Scroll Velocities
+
+Scroll velocities (SVs) change the apparent speed at which notes travel toward the judgement line **without affecting audio timing**. An SV multiplier of `2.0` makes notes scroll twice as fast; `0.5` halves the speed; and `0.0` freezes notes in place — a technique used for teleport and stutter effects. The engine applies each SV from its `time` value onward until the next SV entry overrides it.
+
+### JSON schema
+
+<ParamField body="time" type="number" required>
+  The moment in milliseconds at which this scroll velocity takes effect. SVs are sorted by time on load.
+</ParamField>
+
+<ParamField body="multiplier" type="number" default="1">
+  The scroll-speed multiplier applied from this point onward. `1.0` is the base speed set by the player's scroll-speed setting. Negative values scroll notes **upward**, which can be used for gravity-reversal gimmicks.
+</ParamField>
+
+<ParamField body="group" type="string">
+  Assigns this SV to a named scroll group. Notes in the same group (via their own `group` field) scroll independently of the default playfield. Leave empty or omit to target the default group.
+</ParamField>
+
+<ParamField body="groups" type="string[]">
+  An array of group names this SV applies to. Use this when one SV should control multiple named scroll groups simultaneously (e.g. `["$1", "$2"]` for lanes 1 and 2 independently).
+</ParamField>
+
+### Example — simple speed-up then reset
+
+```json
+"ScrollVelocities": [
+  { "time": 0,     "multiplier": 1.0 },
+  { "time": 8000,  "multiplier": 2.5 },
+  { "time": 12000, "multiplier": 1.0 }
+]
+```
+
+### Example — freeze (teleport reset)
+
+Setting the multiplier to `0` stops notes from advancing visually while audio time continues. The next SV restores movement, causing all frozen notes to "teleport" to their correct visual position.
+
+```json
+"ScrollVelocities": [
+  { "time": 20000, "multiplier": 0   },
+  { "time": 20500, "multiplier": 1.0 }
+]
+```
+
+### Example — per-group SV (split scroll)
+
+```json
+"ScrollVelocities": [
+  { "time": 0,    "multiplier": 1.0, "groups": [] },
+  { "time": 4000, "multiplier": 2.0, "group": "fast-layer" },
+  { "time": 4000, "multiplier": 0.5, "group": "slow-layer" }
+]
+```
+
+<Warning>
+  Scroll velocities with a multiplier of `0` combined with long hold notes can cause visual overlap. Make sure the SV duration matches your intended visual design before submitting a map for ranking.
+</Warning>
+
+---
+
+## Hit-Sound Fades
+
+Hit-sound fades let you automate the volume of individual named hit-sound channels over time. This is useful for gradually muting a hi-hat channel during a breakdown or fading in a clap before a chorus drop.
+
+### JSON schema
+
+<ParamField body="time" type="number" required>
+  The moment in milliseconds at which the volume transition begins.
+</ParamField>
+
+<ParamField body="sound" type="string" required>
+  The name of the hit-sound channel to modify (e.g. `"normal"`, `"clap"`, `"whistle"`). Must match the `hitsound` value used on notes that should be affected.
+</ParamField>
+
+<ParamField body="volume" type="number" required>
+  Target volume as a value from `0.0` (silent) to `1.0` (full volume). The channel fades from its current volume to this target.
+</ParamField>
+
+<ParamField body="duration" type="float" default="0">
+  Length of the fade in milliseconds. A value of `0` applies the volume change instantly with no transition.
+</ParamField>
+
+<ParamField body="ease" type="Easing" default="None">
+  The easing function used for the volume transition. Any standard osu-framework `Easing` enum name is valid (e.g. `"OutQuad"`, `"InSine"`, `"Linear"`). `0` or `"None"` means linear interpolation.
+</ParamField>
+
+### Example — mute clap during breakdown
+
+```json
+"HitSoundFades": [
+  { "time": 60000,  "sound": "clap", "volume": 0.0,  "duration": 2000, "ease": 0 },
+  { "time": 90000,  "sound": "clap", "volume": 1.0,  "duration": 1000, "ease": 0 }
+]
+```
+
+---
+
+## How the three systems interact
+
+<Steps>
+  <Step title="BPM sets the musical grid">
+    Each `TimingPoint` creates a new beat grid. The editor snaps hit objects to this grid, and beat-synced events (like `BeatPulseEvent`) use `MsPerBeat` derived from the active timing point.
+  </Step>
+  <Step title="SVs warp visual timing">
+    Scroll velocities stretch or compress the visual distance between notes without moving them musically. A note at `time: 1000` is always hit at 1000 ms; an SV just changes how far away it appears before that moment.
+  </Step>
+  <Step title="Hit-sound fades control audio feel">
+    `HitSoundFades` automate per-channel volume, letting the soundscape evolve throughout the map without requiring separate audio stems.
+  </Step>
+</Steps>
+
+<Tip>
+  A common SV technique is the **slowdown-teleport**: set the SV to `0` briefly, place a cluster of notes at the same time position, then snap the SV back to `1`. The player hears and hits a chord but sees the notes arrive individually — a popular density-illusion gimmick.
+</Tip>

@@ -1,0 +1,135 @@
+---
+title: "Contribute to fluXis: Build, Fork, and Submit"
+sidebarTitle: "Contributing"
+description: "Learn how to build fluXis from source, set up your development environment, and contribute bug fixes or features back to the open-source project on GitHub."
+---
+
+fluXis is a fully open-source, community-driven rhythm game built on osu!framework, and contributions of any kind — bug reports, feature ideas, code patches, or translations — are warmly welcomed. The project lives at [github.com/InventiveRhythm/fluXis](https://github.com/InventiveRhythm/fluXis) and is released under the **MIT License**, so you are free to fork, modify, and redistribute the code as long as the original license is included.
+
+## Prerequisites
+
+Before you can build fluXis you need two things installed on your machine:
+
+<CardGroup cols={2}>
+  <Card title=".NET 8 SDK" icon="cube" href="https://dotnet.microsoft.com/en-us/download/dotnet/8.0">
+    fluXis targets .NET 8. The `global.json` at the repository root pins the SDK to `8.0.0` with `rollForward: latestMajor`, so any .NET 8 release will work.
+  </Card>
+  <Card title="An IDE" icon="code">
+    Any IDE that supports C# works. Popular choices include **JetBrains Rider**, **Visual Studio 2022**, and **Visual Studio Code** with the C# Dev Kit extension.
+  </Card>
+</CardGroup>
+
+<Note>
+  fluXis runs on **Windows, macOS, and Linux**. There are no platform-specific build requirements beyond the .NET 8 SDK.
+</Note>
+
+## Setting Up Your Environment
+
+<Steps>
+  <Step title="Fork the repository">
+    If you plan to submit a pull request, start by clicking **Fork** on the [fluXis GitHub page](https://github.com/InventiveRhythm/fluXis) to create your own copy. If you only want to build locally, you can clone the upstream repo directly.
+  </Step>
+
+  <Step title="Clone with submodules">
+    fluXis uses git submodules (primarily for the osu!framework dependency). You **must** pass `--recurse-submodules` or the game will not compile:
+
+    ```shell
+    git clone --recurse-submodules https://github.com/InventiveRhythm/fluXis
+    cd fluXis
+    ```
+
+    To pull the latest changes including any submodule updates later on:
+
+    ```shell
+    git pull --recurse-submodules
+    ```
+  </Step>
+
+  <Step title="Build and run the game">
+    From the repository root, run the desktop launcher project directly with the .NET CLI:
+
+    ```shell
+    dotnet run --project fluXis.Desktop
+    ```
+
+    The first build will restore NuGet packages automatically. Subsequent runs will be faster. The game window should open once the build succeeds.
+  </Step>
+
+  <Step title="Open the solution in your IDE">
+    Open `fluXis.sln` in your IDE of choice for full IntelliSense, debugging, and test-runner support. Solution filter files (`fluXis.Desktop.slnf`, `fluXis.Android.slnf`) are also provided if you only want to load a subset of projects.
+  </Step>
+</Steps>
+
+## Project Structure
+
+Understanding which project does what will help you find the right place to make changes.
+
+<CardGroup cols={2}>
+  <Card title="fluXis/" icon="gamepad-2">
+    The core game library. Contains all gameplay logic, map loading, the plugin system, networking, skinning, overlays, and the osu!framework component tree. Most feature work lives here.
+  </Card>
+  <Card title="fluXis.Desktop/" icon="monitor">
+    The desktop entry-point project. It wires up `FluXisGameDesktop` and sets the platform host. This is the project you pass to `dotnet run`. It is intentionally thin.
+  </Card>
+  <Card title="fluXis.Tests/" icon="flask-conical">
+    The test suite, powered by osu!framework's visual test runner. Run it like any other project (`dotnet run --project fluXis.Tests`) to launch an interactive test browser where you can step through individual scenes.
+  </Card>
+  <Card title="fluXis.Import.*" icon="import">
+    Separate importer plug-in projects for third-party formats: `fluXis.Import.osu`, `fluXis.Import.Stepmania`, and `fluXis.Import.Quaver`. Each implements the `Plugin` abstract class and ships as its own assembly.
+  </Card>
+  <Card title="fluXis.Resources/" icon="image">
+    Static assets — textures, fonts, audio samples — referenced by the main game. These are managed separately to keep the primary project lean.
+  </Card>
+  <Card title="Framework/" icon="layers">
+    The git submodule that tracks the osu!framework version fluXis is built against. Do not edit files here directly.
+  </Card>
+</CardGroup>
+
+<Tip>
+  A good first step when exploring the codebase is to read `fluXis/FluXisGameBase.cs` — it is the root `Game` component and bootstraps all the major subsystems via osu!framework's dependency injection container.
+</Tip>
+
+## Submitting Issues
+
+When you encounter a bug or want to request a feature, [open an issue](https://github.com/InventiveRhythm/fluXis/issues) on GitHub. To write a useful bug report, include:
+
+- The fluXis version (shown in the in-game settings or release tag)
+- Your operating system and .NET SDK version
+- Steps to reproduce the problem
+- Any relevant log output from the `logs/` directory in your fluXis data folder
+
+<Warning>
+  Search existing issues before opening a new one. Duplicate reports slow down triage and make it harder for maintainers to track genuine bugs.
+</Warning>
+
+## Submitting Pull Requests
+
+<Steps>
+  <Step title="Branch off main">
+    Create a focused branch from `main`. Name it something descriptive, for example `fix/replay-desync` or `feature/tournament-client`.
+  </Step>
+
+  <Step title="Write or update tests">
+    If your change touches gameplay logic, add a test scene under `fluXis.Tests/`. The visual test runner makes it easy to verify rendering and interaction behavior without launching the full game.
+  </Step>
+
+  <Step title="Keep commits clean">
+    Prefer small, atomic commits with clear messages. Squash fixup commits before opening the PR if your history is noisy.
+  </Step>
+
+  <Step title="Open the pull request">
+    Push your branch and open a PR against `main` on the upstream repository. Fill in the PR description explaining **what** changed and **why**. Link to any related issues with `Closes #NNN`.
+  </Step>
+
+  <Step title="Respond to review feedback">
+    A maintainer will review your changes and may request adjustments. Address each comment and push additional commits — the PR will update automatically.
+  </Step>
+</Steps>
+
+<Note>
+  By contributing code to fluXis you agree that your contribution will be released under the same **MIT License** that governs the rest of the project.
+</Note>
+
+## License
+
+fluXis is licensed under the [MIT License](https://github.com/InventiveRhythm/fluXis/blob/main/LICENSE). In short: you can do whatever you want with the code as long as you include the original copyright and license notice. There are no copyleft restrictions.

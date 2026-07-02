@@ -1,0 +1,185 @@
+---
+title: "Charting Notes and Hit Objects in the Editor"
+sidebarTitle: "Charting"
+description: "The Charting tab is where you place notes, long notes, landmines, and tick notes. Covers placement tools, selection, copy/paste, and lane switching events."
+---
+
+The Charting tab is the heart of the fluXis map editor. It presents a vertically scrolling playfield that mirrors the gameplay view, with the audio waveform overlaid in the background and the beat grid drawn as horizontal lines at every snap division. Notes you place appear in real time, and the entire undo/redo history is tracked per action so you can experiment freely. The tab loads asynchronously on first open — a spinner is shown briefly while the container initializes, after which it fades in at full opacity.
+
+## Layout
+
+The Charting tab is divided into three horizontal regions:
+
+- **Left sidebar — Toolbox** — Selects the active placement tool, lets you choose hitsounds, and exposes the Modding toolbox when ModView is active.
+- **Center — Playfield** — The scrolling note area. For maps with a separate dual-mode layout, two playfields are shown side by side.
+- **Right sidebar — Points list** — Lists all timing points and lane-switch events for the current map. Hover or press <kbd>Tab</kbd> to expand it.
+
+---
+
+## Placement Tools
+
+The toolbox on the left groups tools into two categories. You can activate any tool by clicking its button or pressing its keyboard shortcut.
+
+<CardGroup cols={2}>
+  <Card title="Select (1)" icon="cursor">
+    Drag to draw a selection rectangle, or click individual notes to select them. Selected notes can be moved, deleted, flipped, shuffled, or have a group applied. Activated by pressing <kbd>1</kbd>.
+  </Card>
+  <Card title="Single Note (2)" icon="pencil-simple">
+    Click on the playfield to place a standard single-hit note at the nearest snapped time in the clicked lane. Activated by pressing <kbd>2</kbd>.
+  </Card>
+  <Card title="Long Note (3)" icon="ruler">
+    Click and drag vertically on the playfield to place a hold note. The note head is placed where you first click; the tail follows your cursor until you release. Activated by pressing <kbd>3</kbd>.
+  </Card>
+  <Card title="Tick Note (4)" icon="caret-down">
+    Places a tick note — a lightweight hit object used inside long notes or for special rhythm patterns. Activated by pressing <kbd>4</kbd>.
+  </Card>
+  <Card title="Landmine (5)" icon="bomb">
+    Places a landmine hit object. Landmines penalize the player for pressing the key when they appear. Activated by pressing <kbd>5</kbd>.
+  </Card>
+  <Card title="Lane Switch (L)" icon="arrows-left-right">
+    An effect tool that changes the number of active lanes at a given timestamp. Drag vertically to set the lane count and placement time. Activated by pressing <kbd>L</kbd>.
+  </Card>
+</CardGroup>
+
+<Note>
+  Effect tools (including Lane Switch) are separate from the standard note tools. They are listed in the **Effects** section of the toolbox and use letter keys (<kbd>L</kbd>) rather than number keys.
+</Note>
+
+---
+
+## Placing Notes
+
+<Steps>
+  <Step title="Set your snap divisor">
+    Choose the snap divisor that matches the rhythm you are charting (e.g., 4 for quarter-note patterns, 8 for eighth notes). The active divisor is shown in the bottom bar and can be changed by scrolling the mouse wheel over it.
+  </Step>
+  <Step title="Choose the right tool">
+    Select **Single Note**, **Long Note**, **Tick Note**, or **Landmine** from the toolbox, or press the corresponding number key.
+  </Step>
+  <Step title="Click on the playfield">
+    Move your cursor into the playfield area and click the lane where you want the note to appear. The time is snapped to the nearest beat-grid position. For long notes, hold the mouse button and drag upward to extend the tail.
+  </Step>
+  <Step title="Assign a hitsound (optional)">
+    Select a hitsound from the **Hitsounds** section of the toolbox before placing notes. The top-row keys <kbd>Q</kbd>–<kbd>P</kbd> cycle through your available hitsound presets for quick assignment during placement.
+  </Step>
+</Steps>
+
+### Recording Input
+
+Press <kbd>Ctrl</kbd> + <kbd>R</kbd> to enter **recording mode**. While recording, pressing the number keys <kbd>1</kbd>–<kbd>9</kbd> places single notes in the corresponding lane at the current playback time, snapped to the nearest grid line. This is useful for tapping along to music in real time rather than clicking notes individually. Press <kbd>Ctrl</kbd> + <kbd>R</kbd> again to stop recording.
+
+---
+
+## Selecting and Editing Notes
+
+With the **Select tool** active you can:
+
+- **Click** a single note to select it.
+- **Drag** an empty area to draw a rectangular selection box.
+- **Ctrl + A** — select all notes in the map.
+- **Delete** — remove all selected notes.
+
+### Selection Operations
+
+| Operation | Shortcut / Menu | Description |
+|-----------|-----------------|-------------|
+| Flip | Editor keymap / **Edit → Flip Selection** | Mirrors lane positions of selected notes horizontally (e.g., lane 1 ↔ lane 4 in 4K). |
+| Shuffle | Editor keymap / **Edit → Shuffle Selection** | Randomizes the lane assignments of selected notes. |
+| Apply Group | Editor keymap / **Edit → Apply Group to Selection** | Opens a dialog to assign a group ID to all selected notes. |
+| Clone | Editor keymap | Duplicates the selection and places the clone immediately after the last note's beat boundary, snapping to the nearest grid line. |
+| Re-snap all | **Edit → Re-snap all notes** | Snaps every note in the map (or the current selection) to the active snap divisor. |
+
+---
+
+## Copy, Cut, and Paste
+
+The editor uses the system clipboard with a JSON-based internal format (`EditorClipboardContent`). Time offsets in the clipboard are stored relative to the earliest note in the selection; on paste they are added back relative to the current playback position.
+
+| Action | Keys |
+|--------|------|
+| Copy | <kbd>Ctrl</kbd> + <kbd>C</kbd> |
+| Cut (copy + delete) | <kbd>Ctrl</kbd> + <kbd>X</kbd> |
+| Paste at cursor | <kbd>Ctrl</kbd> + <kbd>V</kbd> |
+
+A notification toast confirms the number of hit objects copied or pasted. Attempting to paste when the clipboard contains no valid hit objects shows an "Clipboard is empty." warning.
+
+---
+
+## Undo and Redo
+
+Every placement, deletion, move, flip, shuffle, group assignment, and re-snap operation is recorded as a discrete `EditorAction` in the `EditorActionStack`. The stack supports unlimited undo depth for the current session.
+
+| Action | Keys | Menu |
+|--------|------|------|
+| Undo | <kbd>Ctrl</kbd> + <kbd>Z</kbd> | **Edit → Undo** |
+| Redo | <kbd>Ctrl</kbd> + <kbd>Y</kbd> | **Edit → Redo** |
+
+Each undo/redo step displays a brief description in a notification toast (e.g., "Undo 'Place note at 1250ms on lane 2'.").
+
+<Tip>
+  The undo stack persists for the entire session but is cleared if you close and reopen the editor. Save frequently to avoid losing work.
+</Tip>
+
+---
+
+## Timing Points
+
+The right sidebar (Points list) shows all **timing points** and **lane-switch events** for the map. Timing points define BPM and time signature at a given position.
+
+### Adding a Timing Point
+
+Press the editor keymap binding for **Add Timing** (default: configurable) while in the Charting tab. A new timing point is created at the current playback time, inheriting the BPM, time signature, and hidden-lines flag from the immediately preceding point. The sidebar opens automatically to show the new entry for editing.
+
+### Lane-Switch Events in the Charting Tab
+
+Lane-switch events also appear in the sidebar and on the playfield as a horizontal coloured band. Use the **Lane Switch** effect tool to place them. Each event stores a target lane count; when the map plays back, the playfield transitions to that lane count at the specified time.
+
+<Warning>
+  Reducing the key mode (e.g., from 6K to 4K) via a lane-switch event is only possible if no notes in the affected region use a lane number higher than the new count. The editor enforces this constraint when you set the key mode in the Setup tab as well.
+</Warning>
+
+---
+
+## Waveform Display
+
+The audio waveform is rendered behind the playfield at an adjustable opacity (default 20 %). You can change the opacity via **View → Waveform opacity** in the menu bar, choosing from 0 %, 20 %, 40 %, 60 %, 80 %, or 100 %. The waveform is offset slightly upward from the centre of its beat-grid row (`WAVEFORM_OFFSET = 20`) to avoid overlapping note heads.
+
+---
+
+## Note Properties
+
+Each `HitObject` stored in the map carries the following properties relevant to the Charting tab:
+
+| Property | Description |
+|----------|-------------|
+| `Time` | Start time in milliseconds from the beginning of the audio. |
+| `Lane` | 1-indexed lane number. Must be ≤ the map's key count. |
+| `HoldTime` | Duration in ms. Non-zero values make the note a long note. |
+| `HitSound` | Name of the hitsound sample to play when the note is hit (e.g., `default-normal`). |
+| `Type` | `Default`, `Tick`, or `Landmine`. Affects gameplay behavior and visual representation. |
+
+<Accordion title="Hitsound naming convention">
+  Hitsounds follow the pattern `{prefix}-{sound}`. The default prefix is `default`. Additional sample sets can be referenced by changing the prefix. Custom hitsounds placed in the map's song folder are picked up automatically by the `Hitsounding` system.
+</Accordion>
+
+---
+
+## Charting Workflow Summary
+
+<Steps>
+  <Step title="Set BPM and offset in Setup or via the timing point sidebar">
+    At minimum, one timing point must exist before you can save. Add it from the Charting tab sidebar or via the editor keymap binding.
+  </Step>
+  <Step title="Pick a snap divisor and tool">
+    Match the divisor to the subdivision of the rhythm you are charting. Start with 4 for most patterns.
+  </Step>
+  <Step title="Place notes to the music">
+    Use the number keys to switch tools quickly. Enable recording mode (<kbd>Ctrl</kbd> + <kbd>R</kbd>) if you prefer tapping out rhythms in real time.
+  </Step>
+  <Step title="Select and refine">
+    Switch to the Select tool to reposition, flip, or delete notes. Use undo/redo freely to experiment.
+  </Step>
+  <Step title="Save">
+    Press <kbd>Ctrl</kbd> + <kbd>S</kbd> to write changes to disk. Check the Verify tab before uploading.
+  </Step>
+</Steps>

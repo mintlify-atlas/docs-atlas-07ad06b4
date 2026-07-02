@@ -1,0 +1,170 @@
+---
+title: "Design Tab: Map Events and Visual Effects"
+sidebarTitle: "Design Tab"
+description: "The Design tab lets you place and edit map events like flash, color fade, playfield moves, and shaders on a timeline synchronized with your map's audio."
+---
+
+The Design tab is where your map's visual personality takes shape. Rather than showing a raw event list, it renders a live preview of the full gameplay ruleset — complete with scrolling notes, background, and all active effects — while you work. As you add, edit, or remove events, the preview rebuilds in the background (with a brief loading spinner) so you always see an accurate representation of what players will experience. The sidebar on the right contains the timeline-style event list organized by event type, and a dropdown for selecting which type of event you want to add next.
+
+## Layout
+
+The Design tab has two main regions:
+
+- **Center — Live preview** — A 1920×1080 reference render of the gameplay scene, scaled to fit the editor window. The preview is clocked to `EditorClock`, so scrubbing and playing back in the editor scrubs and plays back the preview simultaneously.
+- **Right sidebar — Design points list** — The expandable event timeline. Hover over it or press <kbd>Tab</kbd> to open it. A color-coded dropdown at the top lets you select the event type you want to add; the list below shows all existing events for the current map, sorted by time.
+
+<Note>
+  The Design tab has no left toolbox. Background dim and blur are controlled from the **View** menu in the menu bar and are reflected immediately in the preview.
+</Note>
+
+---
+
+## Live Preview Details
+
+The preview pipeline runs a full `ReplayRulesetContainer` fed by an auto-generated replay so notes scroll past in sync with the editor clock. The preview automatically rebuilds whenever the map changes, with a 400 ms idle timeout to prevent constant rebuilding while you are actively editing. You can force an immediate full rebuild at any time by pressing <kbd>Shift</kbd> + <kbd>R</kbd> while the Design tab is focused.
+
+Events marked as `ignoredForRebuild` — specifically `PulseEvent`, `ShaderEvent`, `NoteEvent`, and storyboard elements — update incrementally without triggering a full ruleset rebuild.
+
+---
+
+## Event Types
+
+The Design tab manages all map events stored in `MapEvents`. Each type is color-coded in the sidebar and can be targeted with its own dropdown entry.
+
+<Tabs>
+  <Tab title="Visual Flash">
+    ### Flash
+    Creates a sudden burst of color over the playfield. Flash events can be placed in the **background** (behind notes) or **foreground** (in front of notes). Useful for accenting strong beats or dramatic moments.
+
+    **Key properties:** start color, end color, easing, duration, whether the flash is in the background.
+  </Tab>
+  <Tab title="Color Fade">
+    ### Color Fade
+    Smoothly transitions the color tint of the playfield or background over a configurable duration using an easing curve. Unlike Flash, Color Fade is designed for sustained color shifts rather than brief bursts.
+
+    **Key properties:** start color, end color, easing, duration.
+  </Tab>
+  <Tab title="Pulse">
+    ### Pulse
+    A repeating scale pulse synchronized to the beat. The `PulseEffect` layer reacts to every `PulseEvent` placed in the map and rebuilds whenever any pulse event is added, updated, or removed. Multiple pulse events can coexist with different timings and parameters.
+
+    ### Beat Pulse
+    A simpler beat-driven pulse that fires on every beat boundary rather than at a specific time offset. Useful for keeping the playfield feeling rhythmically alive throughout a section.
+  </Tab>
+  <Tab title="Playfield Motion">
+    ### Playfield Move
+    Translates the entire playfield (notes, receptors, and all) to a new position over a given duration. Position is expressed as an offset from the center of the screen.
+
+    ### Playfield Scale
+    Scales the playfield up or down from its center anchor. Can be used for zoom effects or emphasis beats.
+
+    ### Playfield Rotate
+    Rotates the playfield around its center anchor. Combine with Playfield Move for complex kinetic effects.
+  </Tab>
+  <Tab title="Camera">
+    ### Camera Move
+    Moves the virtual camera position, affecting all elements rendered inside the `CameraContainer`. Camera events are rebuilt immediately when any camera event is added, updated, or removed.
+
+    ### Camera Scale
+    Scales the camera viewport, creating a zoom-in or zoom-out effect distinct from Playfield Scale because it affects the entire scene rather than just the note lane.
+
+    ### Camera Rotate
+    Rotates the camera viewport.
+  </Tab>
+  <Tab title="Other Events">
+    ### Shake
+    Applies a screen-shake effect for a specified duration and intensity. Commonly used on heavy impacts.
+
+    ### Shader
+    Activates a full-screen post-processing shader effect. Available shader types include Chromatic, Greyscale, Invert, Bloom, Mosaic, Noise, Vignette, Retro, HueShift, Glitch, SplitScreen, FishEye, and Reflections. Adding a new shader type causes the shader stack to rebuild; updating parameters within an existing type does not.
+
+    ### Layer Fade
+    Fades the opacity of a specific rendering layer (background or notes layer) over time.
+
+    ### Hit Object Ease
+    Overrides the easing curve applied to incoming hit objects for a section, allowing notes to arrive with non-linear motion.
+
+    ### Scroll Velocity
+    Changes the visual scroll speed of notes without affecting the audio or timing. Listed under the Design sidebar alongside all other events for convenience.
+
+    ### Scroll Multiplier
+    Multiplies the scroll speed by a factor at a given point in the map. Distinct from Scroll Velocity in that it scales relative to the current speed rather than setting an absolute value.
+
+    ### Time Offset
+    Shifts all subsequent event timings by a given millisecond offset. Useful for aligning sections of events after a timing rework.
+
+    ### Loop
+    Repeats a block of events a specified number of times, each iteration offset by a fixed duration.
+
+    ### Note (Lyric/Subtitle)
+    Stores a text string at a given timestamp, used to display lyrics or subtitles in supported skin configurations.
+  </Tab>
+</Tabs>
+
+---
+
+## Adding an Event
+
+<Steps>
+  <Step title="Seek to the target time">
+    Use the playback controls or click the waveform in the bottom bar to position the playhead at the moment where you want the event to start.
+  </Step>
+  <Step title="Open the Design sidebar">
+    Hover over the right sidebar or press <kbd>Tab</kbd> to expand it.
+  </Step>
+  <Step title="Select the event type">
+    Click the color-coded dropdown at the top of the sidebar and choose the event type you want to place (e.g., **Flash**, **Playfield Move**, **Shader**).
+  </Step>
+  <Step title="Click the add button">
+    Press the add button (the **+** icon next to the dropdown). A new event is created at the current playhead time with default parameters and selected automatically in the list.
+  </Step>
+  <Step title="Edit event parameters">
+    The **Selection Inspector** appears at the bottom of the sidebar, showing the editable fields for the selected event. Modify duration, easing, color values, or other type-specific parameters. Changes are applied immediately and reflected in the live preview after its idle rebuild delay.
+  </Step>
+</Steps>
+
+---
+
+## Editing Existing Events
+
+Click any event row in the sidebar list to select it. The Selection Inspector at the bottom of the sidebar shows all editable fields. You can also:
+
+- **Drag** an event row to reposition it in time.
+- **Right-click** an event row for a context menu with duplicate and delete options.
+- **Bulk delete** — select multiple events with <kbd>Shift</kbd>+click and delete them via the context menu. This is tracked as a `EventBulkRemoveAction` in the undo stack.
+- **Bulk clone** — select multiple events and clone them forward in time as a group via `EventBulkCloneAction`.
+
+All event add, remove, and update operations are recorded in the `EditorActionStack` and can be undone/redone with <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd>.
+
+---
+
+## Previewing Effects
+
+Because the Design tab runs a live gameplay preview, most effects are immediately visible as soon as you place them:
+
+| Effect type | Preview behavior |
+|-------------|-----------------|
+| Flash | Fires at the correct time when playback reaches the event. |
+| Color Fade | Tints the background/playfield in real time. |
+| Pulse / Beat Pulse | The pulse layer updates on every frame during playback. |
+| Playfield Move / Scale / Rotate | The playfield transforms smoothly during scrubbing. |
+| Camera events | The `CameraContainer` rebuilds immediately on any camera event change. |
+| Shader | The shader stack rebuilds when a new shader *type* is added; parameter changes update without a full rebuild. |
+| Layer Fade | Fade is visible in real time. |
+| Scroll Velocity / Multiplier | Note spacing changes are visible in the preview during playback. |
+
+<Tip>
+  Scrub the playhead slowly over an event's timestamp to see its onset without waiting for real-time playback. Press <kbd>Space</kbd> to toggle play/pause.
+</Tip>
+
+---
+
+## Aspect Ratio Enforcement
+
+If the map's **Force 16:9 Aspect Ratio** toggle is enabled in the Setup tab (or `Settings.ForceAspectRatio` in the Design container), the preview area is letterboxed to a strict 16:9 ratio inside an `AspectRatioContainer`. This matches the constrained playfield that players using non-16:9 monitors will see.
+
+---
+
+## Relationship to the Events Format
+
+The event types available in the Design tab correspond directly to the structures documented in the [Map Events reference](/mapping/events). Each event type is a strongly-typed C# class (e.g., `FlashEvent`, `PlayfieldMoveEvent`, `ShaderEvent`) serialized to JSON inside the `.ffx` file that accompanies every `.fsc` chart file. For the full list of event fields and their JSON keys, see the [Map Events](/mapping/events) page.

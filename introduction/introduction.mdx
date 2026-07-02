@@ -1,0 +1,77 @@
+---
+title: "fluXis: A Community-Driven Rhythm Game"
+sidebarTitle: "Introduction"
+description: "fluXis is a free, open-source VSRG built for creativity. Learn what makes it unique — map editor, Lua scripting, custom skins, and online play."
+---
+
+fluXis is a free, open-source vertical scrolling rhythm game (VSRG) built with a focus on creativity and expression. Developed by a community of rhythm game enthusiasts, fluXis sits atop [osu!framework](https://github.com/ppy/osu-framework) and the .NET 8 runtime, giving it a solid cross-platform foundation while keeping the codebase accessible to contributors of all experience levels. Whether you want to play, create maps, design skins, or extend the game through scripting, fluXis is built to support you.
+
+## What Is fluXis?
+
+fluXis is a lane-based rhythm game in which notes scroll vertically toward a hit zone at the bottom of the screen. Players tap, hold, or release notes in time with the music, earning score and accuracy based on timing precision. The game ships with an online infrastructure for ranked play, leaderboards, and multiplayer rooms, making it both a personal creative tool and a competitive platform.
+
+The project is licensed under the [MIT License](https://github.com/InventiveRhythm/fluXis/blob/main/LICENSE.md), meaning you can study, fork, and redistribute the code freely as long as the original license notice is preserved.
+
+<Note>
+  fluXis is community-driven. All feature development, map content, and skin
+  assets are created and maintained by contributors around the world. The best
+  way to shape the game's future is to get involved.
+</Note>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Gameplay" icon="gamepad">
+    Vertical scrolling lane gameplay with configurable key counts, scroll speed,
+    and modifier mods. Precise hit detection is powered by osu!framework's
+    audio engine for consistent timing across platforms.
+  </Card>
+  <Card title="Map Editor" icon="pen-to-square">
+    A full in-game map editor lets you author, time, and fine-tune maps without
+    leaving fluXis. Place notes, set timing points, and preview your map in real
+    time.
+  </Card>
+  <Card title="Lua Storyboards" icon="code">
+    Storyboards are scripted in Lua, giving creators programmatic control over
+    visuals, animations, and effects that react to the music and gameplay state.
+  </Card>
+  <Card title="Custom Skinning" icon="palette">
+    Every visual element — notes, hit explosions, lane backgrounds, HUD panels —
+    can be replaced through the built-in skinning system, with a dedicated
+    in-game skin editor for live previewing.
+  </Card>
+  <Card title="Online & Multiplayer" icon="tower-broadcast">
+    Register an account to submit scores to global leaderboards, spectate other
+    players in real time, and join multiplayer rooms where everyone plays the
+    same map together.
+  </Card>
+  <Card title="Map Imports" icon="file-import">
+    Already have a library from another game? fluXis can import maps from
+    **osu!**, **Quaver**, and **Stepmania / ITG** so you can play your existing
+    collection right away.
+  </Card>
+</CardGroup>
+
+## Built on osu!framework and .NET 8
+
+Under the hood fluXis is a .NET 8 application that uses [osu!framework](https://github.com/ppy/osu-framework) as its rendering and input layer. osu!framework provides hardware-accelerated 2D graphics via OpenGL/Vulkan, a high-precision audio pipeline, cross-platform windowing, and a dependency-injection model that makes the codebase highly testable. Because fluXis targets .NET 8, it runs natively on Windows, macOS, and Linux without emulation or compatibility layers.
+
+<Tip>
+  If you are a .NET developer already familiar with osu!framework — for example
+  from contributing to osu! — you will find fluXis's architecture immediately
+  recognisable. Most game screens, overlays, and components follow the same
+  drawable-tree patterns used throughout osu!framework itself.
+</Tip>
+
+## Community and Open Source
+
+fluXis is developed entirely in the open on [GitHub](https://github.com/InventiveRhythm/fluXis). Contributions of all kinds are welcome: new features, bug fixes, translations via [Weblate](http://weblate.flux.moe/engage/fluxis/), documentation improvements, and map or skin assets. The project follows the [Contributor Covenant Code of Conduct](https://github.com/InventiveRhythm/fluXis/blob/main/CODE_OF_CONDUCT.md), which holds all participants to a standard of mutual respect, constructive feedback, and inclusive collaboration.
+
+<CardGroup cols={2}>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/InventiveRhythm/fluXis">
+    Browse source code, open issues, and submit pull requests.
+  </Card>
+  <Card title="Play on Steam" icon="steam" href="https://store.steampowered.com/app/3440100/fluXis/">
+    Install the latest stable release with automatic updates via Steam.
+  </Card>
+</CardGroup>

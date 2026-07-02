@@ -1,0 +1,216 @@
+---
+title: "Per-Keymode Layout and Color Configuration in fluXis"
+sidebarTitle: "Keymode Config"
+description: "Each key count (1k–10k+) in skin.json has its own layout config: column width, hit position, receptor offset, tint flags, and lane color array."
+---
+
+fluXis stores a separate layout block in `skin.json` for each key count from 1k through 10k. Every block is an instance of `SkinKeymode` and controls the physical geometry of the playfield — how wide each column is, where notes are judged, how far receptors sit from the hit line — as well as the color tinting system that maps lane colors onto your note textures. Because each key count has its own block, a single skin can define a comfortable 4-key layout at 110 px wide columns while using narrower 78 px columns for 10-key without any compromise.
+
+## Field reference
+
+<ParamField body="column_width" type="int" default="varies by keymode">
+  The width of each column in pixels. This controls how wide every note, receptor, long-note body, and column lighting strip will be drawn. The default values decrease as key count increases to keep the total stage width manageable:
+
+  | Key count | Default `column_width` |
+  |-----------|------------------------|
+  | 1k        | 132                    |
+  | 2k        | 126                    |
+  | 3k        | 120                    |
+  | 4k        | 114                    |
+  | 5k        | 108                    |
+  | 6k        | 102                    |
+  | 7k        | 96                     |
+  | 8k        | 90                     |
+  | 9k        | 84                     |
+  | 10k+      | 78                     |
+
+  <Tip>
+    Wider columns give note textures more room to breathe. If you are using a detailed texture with fine line work, set `column_width` high enough that the detail is not compressed.
+  </Tip>
+</ParamField>
+
+<ParamField body="hit_position" type="int" default="130">
+  The vertical offset in pixels from the bottom of the stage to the hit line — the point where notes should be pressed. Larger values push the receptor and hit line higher on screen, giving you more visible scroll distance above the hit zone. The default of `130` works well for most scroll speeds.
+</ParamField>
+
+<ParamField body="tint_notes" type="bool" default="false">
+  When `true`, fluXis colorizes note head textures (hit objects and long note start/end caps) with the lane color resolved from the `colors` array. The color is applied as a multiplicative tint, so a pure-white area of the texture takes on the full lane color while darker areas are less affected.
+
+  When `false`, note textures are rendered at their original pixel colors with no tint applied. Use this when your textures are pre-colored and you do not want fluXis to modify them.
+
+  <Note>
+    Setting `tint_notes` to `false` also ignores `tint_lns` — long-note bodies and ends are only ever tinted when `tint_notes` is `true`.
+  </Note>
+</ParamField>
+
+<ParamField body="tint_lns" type="bool" default="true">
+  Controls whether the **body** and **end cap** of long notes are tinted with the lane color. This flag only takes effect when `tint_notes` is also `true`. Setting it to `false` while `tint_notes` is `true` lets you tint only the note head and leave the body its original texture color — useful for skins where the long-note body has a distinct look that should not be recolored.
+</ParamField>
+
+<ParamField body="tint_receptors" type="bool" default="false">
+  When `true`, receptor textures (both idle and pressed states) are tinted with the lane color. This is disabled by default because receptors are often designed with their own fixed color style. Enable it to make receptors dynamically match the color of their lane.
+</ParamField>
+
+<ParamField body="colors" type="array of strings" default="[]">
+  An ordered list of hex color strings that define the lane colors for this key count. The array is indexed cyclically — lane 1 maps to index 0, lane 2 maps to index 1, and so on. If the number of lanes exceeds the number of colors in the array, fluXis wraps back to the start using `(lane - 1) % colors.Count`. An empty or absent `colors` array causes all lanes to fall back to `Colour4.White` (no tint).
+
+  See [Understanding the colors array](#understanding-the-colors-array) below for detailed examples.
+</ParamField>
+
+<ParamField body="receptors_first" type="bool" default="false">
+  When `true`, receptors are drawn on top of all other stage elements (including notes). When `false` (the default), receptors are drawn behind notes so a note moving into the hit zone passes in front of the receptor.
+</ParamField>
+
+<ParamField body="receptor_offset" type="int" default="0">
+  A vertical offset in pixels applied to the receptor's position relative to the hit line. Positive values shift the receptor upward; negative values shift it downward. Use this to fine-tune alignment when your receptor texture has internal padding or a visual center that differs from its bounding box origin.
+</ParamField>
+
+---
+
+## Understanding the tinting system
+
+The tinting system in fluXis is multiplicative: a pure white pixel in the source texture is fully replaced by the tint color, while a pure black pixel stays black regardless of the tint. This means your textures act as grayscale masks that are colorized at runtime.
+
+<Tabs>
+  <Tab title="tint_notes: false (default)">
+    The game renders your note, long note start, long note body, and long note end textures exactly as they appear on disk. The `colors` array and the tinting flags are ignored for all note elements. Use this when your textures are already colorized per-lane.
+
+    ```json
+    {
+      "tint_notes": false
+    }
+    ```
+  </Tab>
+
+  <Tab title="tint_notes: true, tint_lns: true">
+    All note head textures (hit objects, long note start caps, long note end caps) **and** long note bodies are tinted with the lane color from `colors`. This is the simplest configuration for a grayscale texture set where you want every element to carry the lane color.
+
+    ```json
+    {
+      "tint_notes": true,
+      "tint_lns": true,
+      "colors": ["#FF4FC8", "#A020F0", "#A020F0", "#FF4FC8"]
+    }
+    ```
+  </Tab>
+
+  <Tab title="tint_notes: true, tint_lns: false">
+    Only the note head (hit object) texture and long note start/end caps are tinted. The long note **body** is rendered untinted. This lets you use a gradient or multi-color body texture that is independent of the lane color while still having the note heads match their lane.
+
+    ```json
+    {
+      "tint_notes": true,
+      "tint_lns": false,
+      "colors": ["#00C3FF", "#558EFF", "#558EFF", "#00C3FF"]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Tintless textures
+
+For individual textures you do not want tinted, name the file with a `-tintless` suffix alongside the normal file. For example, if `4k-1.png` is the tintable version, placing `4k-1-tintless.png` in the same folder tells `CustomSkin` to load the tintless variant as an overlay that is composited at full white. This lets you keep a glowing border or highlight on a note while still allowing the main body to be tinted.
+
+---
+
+## Understanding the colors array
+
+The `colors` array maps lane indices to hex colors by position. fluXis reads each lane's color by computing `(lane - 1) % colors.Count` and parsing the resulting hex string.
+
+**Example — 4-key symmetric layout:**
+```json
+"colors": ["#FF4FC8", "#A020F0", "#A020F0", "#FF4FC8"]
+```
+Lane 1 → index 0 → `#FF4FC8` (pink)  
+Lane 2 → index 1 → `#A020F0` (purple)  
+Lane 3 → index 2 → `#A020F0` (purple)  
+Lane 4 → index 3 → `#FF4FC8` (pink)
+
+**Example — 2-color cycling pattern for 7k:**
+```json
+"colors": ["#00C3FF", "#558EFF"]
+```
+Lane 1 → index 0 → `#00C3FF`  
+Lane 2 → index 1 → `#558EFF`  
+Lane 3 → index 0 → `#00C3FF` *(wraps)*  
+Lane 4 → index 1 → `#558EFF`  
+…and so on for all 7 lanes.
+
+**Example — one color for all lanes:**
+```json
+"colors": ["#FFFFFF"]
+```
+Every lane maps to index 0 → `#FFFFFF`. Because white is a neutral multiplicative tint, this effectively applies no color change, which can be useful to keep tinting enabled structurally while temporarily removing the color effect.
+
+<Warning>
+  If any hex string in `colors` is invalid or cannot be parsed, `GetLaneColor` silently returns `Colour4.White` for that lane. Malformed entries do not throw or break other lanes.
+</Warning>
+
+---
+
+## Complete 4-key configuration example
+
+The following JSON block shows a fully configured `4k` section. Paste it inside your `skin.json` and adjust the values to match your design.
+
+```json
+{
+  "4k": {
+    "column_width": 110,
+    "hit_position": 140,
+    "tint_notes": true,
+    "tint_lns": true,
+    "tint_receptors": false,
+    "receptors_first": false,
+    "receptor_offset": 0,
+    "colors": [
+      "#FF4FC8",
+      "#A020F0",
+      "#A020F0",
+      "#FF4FC8"
+    ]
+  }
+}
+```
+
+This produces a 4-key stage with:
+- 110 px wide columns (slightly narrower than the default 114 px)
+- Hit line 140 px from the bottom (10 px higher than default)
+- Note textures tinted with the `colors` array, including long note bodies and caps
+- Receptors drawn at their original texture colors (no tint)
+- Receptors rendered behind falling notes (default layering)
+- No receptor vertical offset adjustment
+
+---
+
+## Combining multiple keymodes
+
+You can define as many or as few keymode blocks as you like. Blocks you omit fall back to the `SkinKeymode` defaults. The following example defines distinct column widths and color palettes for 4k and 7k, leaving every other key count at its default geometry:
+
+```json
+{
+  "4k": {
+    "column_width": 110,
+    "tint_notes": true,
+    "colors": ["#FF4FC8", "#A020F0", "#A020F0", "#FF4FC8"]
+  },
+  "7k": {
+    "column_width": 88,
+    "hit_position": 135,
+    "tint_notes": true,
+    "tint_lns": true,
+    "colors": [
+      "#FF4FC8",
+      "#A020F0",
+      "#FF4FC8",
+      "#FFFFFF",
+      "#FF4FC8",
+      "#A020F0",
+      "#FF4FC8"
+    ]
+  }
+}
+```
+
+<Tip>
+  For charts with 10 or more keys, fluXis always uses the `10k` block regardless of the actual key count. Design your `10k` configuration to be reasonably compact — 78 px is the default — so that a 10-key or 12-key chart still fits on screen comfortably.
+</Tip>

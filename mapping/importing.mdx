@@ -1,0 +1,233 @@
+---
+title: "Import Maps from osu!, Quaver, and Stepmania"
+sidebarTitle: "Importing"
+description: "fluXis can import maps from osu! (.osz), Quaver (.qp), and Stepmania (.sm/.ssc) formats. Learn how to trigger an import and what gets converted."
+---
+
+fluXis ships with three first-party map importers that let you bring your existing libraries from other rhythm games directly into fluXis without losing timing data or metadata. Each importer converts the source format's notes, timing points, and metadata into the native `.fsc` + `.ffx` format and registers the result in the local map database. Imported maps are marked with a game-specific status code so the editor knows they originated externally and blocks saving or uploading to the fluXis online service.
+
+## How to Import
+
+There are two ways to trigger an import regardless of which format you are using:
+
+1. **Drag and drop** — Drag the map archive or file onto the fluXis window from your file manager. fluXis detects the file extension and routes it to the correct importer automatically.
+2. **File picker** — Use the import dialog accessible from the main menu. Browse to the file and confirm.
+
+A progress notification appears in the corner of the screen while the import runs. On completion it shows "Done! Click to view." — clicking it navigates directly to the imported mapset in song select. If any individual difficulties fail to parse, the notification reports the count of failures alongside the number of successes.
+
+---
+
+## Format Details
+
+<Tabs>
+  <Tab title="osu! (.osz)">
+    ## osu! Import
+
+    **File extension:** `.osz`  
+    **Source game:** osu!mania  
+    **Importer class:** `OsuImport`
+
+    ### What gets converted
+
+    Each `.osu` file inside the archive that belongs to the **mania** game mode is converted to a `.fsc` chart file. The importer extracts the following data:
+
+    | osu! field | fluXis equivalent |
+    |-----------|------------------|
+    | Title / TitleUnicode | `Metadata.Title` / `Metadata.TitleRomanized` |
+    | Artist / ArtistUnicode | `Metadata.Artist` / `Metadata.ArtistRomanized` |
+    | Creator | `Metadata.Mapper` |
+    | Version (difficulty name) | `RealmMap.Difficulty` |
+    | Source | `Metadata.Source` |
+    | Tags | `Metadata.Tags` |
+    | AudioFilename | `Metadata.Audio` |
+    | AudioLeadIn preview time | `Metadata.PreviewTime` |
+    | CircleSize | `KeyCount` |
+    | HPDrainRate | `HealthDifficulty` |
+    | OverallDifficulty | `AccuracyDifficulty` |
+    | TimingPoints (BPM/offset) | `TimingPoints` |
+    | HitObjects (notes, holds) | `HitObjects` |
+    | Background image | `Metadata.Background` |
+
+    Storyboard data from the `.osb` file bundled in the archive is parsed by `OsuStoryboardParser` and written as a `.fsb` storyboard file alongside the charts.
+
+    All non-`.osu` files in the archive (audio, images, videos) are copied verbatim into the converted mapset folder.
+
+    ### How it works internally
+
+    The `.osz` file is a standard ZIP archive. The importer opens it with `ZipFile.OpenRead`, iterates every entry, copies media files to a temporary directory, and queues each `.osu` entry for parsing. `ParseOsuMap` splits the file into sections (`[General]`, `[Metadata]`, `[Difficulty]`, `[Events]`, `[TimingPoints]`, `[HitObjects]`) and delegates each section to `OsuParser`. The parsed `OsuMap` is converted to a `MapInfo` via `ToMapInfo()`.
+
+    ### Auto-import from an osu! installation
+
+    If you have a local osu! installation, you can configure the osu! plugin with the path to your osu! folder. fluXis reads `osu!.db` directly using `OsuDb.Read` and lists all mania beatmaps for in-place playback without re-importing. Background images are fetched by parsing each `.osu` file individually (configurable via the "Skip Backgrounds" toggle to speed up library loading).
+
+    ### Limitations
+
+    - Only osu!**mania** difficulties are converted. Standard, Taiko, and Catch difficulties are skipped.
+    - osu! scroll velocity (SV) changes embedded in timing points are approximated but may not perfectly match osu!mania's SV system.
+    - Custom skin elements and storyboard sprites have no fluXis equivalent and are silently ignored.
+    - Imported maps cannot be saved or uploaded; the editor opens them in read-only mode.
+  </Tab>
+
+  <Tab title="Quaver (.qp)">
+    ## Quaver Import
+
+    **File extension:** `.qp`  
+    **Source game:** Quaver  
+    **Importer class:** `QuaverImport`
+
+    ### What gets converted
+
+    Each `.qua` YAML file inside the `.qp` archive is converted to a `.fsc` chart file. Scroll velocity data from the `.qua` file is additionally exported as an `.ffx` events file via `QuaverMap.GetEffects()`.
+
+    | Quaver field | fluXis equivalent |
+    |-------------|------------------|
+    | Title | `Metadata.Title` |
+    | Artist | `Metadata.Artist` |
+    | Creator | `Metadata.Mapper` |
+    | DifficultyName | `RealmMap.Difficulty` |
+    | Source | `Metadata.Source` |
+    | Tags | `Metadata.Tags` |
+    | AudioFile | `Metadata.Audio` |
+    | BackgroundFile | `Metadata.Background` |
+    | SongPreviewTime | `Metadata.PreviewTime` |
+    | Mode (1=4K, 2=7K, etc.) | `KeyCount` |
+    | TimingPoints | `TimingPoints` |
+    | HitObjects (regular + long notes) | `HitObjects` |
+    | SliderVelocities | Converted to fluXis scroll velocity events |
+
+    All non-`.qua` files (audio, images) are copied verbatim.
+
+    ### Quaver mode to key count mapping
+
+    | Quaver Mode value | fluXis KeyCount |
+    |-------------------|----------------|
+    | 1 | 4 |
+    | 2 | 7 |
+    | 3 | 1 |
+    | 4 | 2 |
+    | 5 | 3 |
+    | 6 | 5 |
+    | 7 | 6 |
+    | 8 | 8 |
+    | 9 | 9 |
+    | 10 | 10 |
+
+    ### YAML parsing
+
+    Quaver's `.qua` format is YAML. The importer uses `YamlDotNet` with `IgnoreUnmatchedProperties` so future or unknown Quaver fields do not break parsing. The `!ScrollGroup` YAML tag is mapped to `QuaverTimingGroup` to handle advanced scroll group features.
+
+    ### Auto-import from a Quaver installation
+
+    Configuring the Quaver plugin with your Quaver installation path enables fluXis to read the `quaver.db` SQLite database directly. This provides the full library listing (title, artist, BPM, length, note counts) without re-importing each map individually.
+
+    ### Limitations
+
+    - Quaver's custom hitsound layers are not preserved; the default fluXis hitsound is used.
+    - Scroll groups and their per-group scroll velocities are converted as best-effort; complex timing group setups may not be perfectly reproduced.
+    - Imported maps cannot be saved or uploaded.
+  </Tab>
+
+  <Tab title="Stepmania (.sm)">
+    ## Stepmania Import
+
+    **File extension:** `.sm`  
+    **Source game:** Stepmania / ITG  
+    **Importer class:** `StepmaniaImport`
+
+    ### What gets converted
+
+    Stepmania maps are not archives — they are plain `.sm` files in a song folder that also contains the audio and background. The importer scans the entire folder for `.sm` files, parses each one with `StepmaniaFile.Parse`, and converts every chart inside (one `.fsc` per difficulty).
+
+    | Stepmania field | fluXis equivalent |
+    |----------------|------------------|
+    | `#TITLE` | `Metadata.Title` |
+    | `#ARTIST` | `Metadata.Artist` |
+    | `#CREDIT` | `Metadata.Mapper` |
+    | `#BACKGROUND` | `BackgroundFile` |
+    | `#MUSIC` | `AudioFile` |
+    | `#SAMPLESTART` | `Metadata.PreviewTime` |
+    | `#OFFSET` | Applied as a negative time offset to all note times |
+    | `#BPMS` | `TimingPoints` (one per BPM change) |
+    | `#STOPS` | Added as time offsets between note rows |
+    | Note data (measures/rows) | `HitObjects` |
+    | Chart difficulty name | `RealmMap.Difficulty` |
+
+    ### Note type conversion
+
+    | Stepmania note type | fluXis hit object |
+    |--------------------|------------------|
+    | `1` (normal) | Single note |
+    | `2` (hold head) | Long note head |
+    | `3` (hold/roll tail) | Long note tail (EndTime set) |
+    | `4` (roll head) | `StepRollNote` — converted to a series of evenly-spaced single notes at half-beat intervals |
+    | `M` (mine) | Landmine (`HitObjectType.Landmine`) |
+    | `0` (empty) | No note |
+
+    All imported maps are treated as 4-key regardless of the original Stepmania chart column count, because Stepmania's 4-panel dance format maps directly to 4K.
+
+    ### Timing calculation
+
+    The `#OFFSET` value (in seconds) is multiplied by −1000 and used as the starting time for the first note row. Each subsequent row advances time by `(MsPerBeat × 4) / rowsInMeasure` using the BPM active at that beat position. `#STOPS` pause time advancement for the specified number of seconds at their beat position.
+
+    ### Auto-import from a Stepmania installation
+
+    Configuring the Stepmania plugin with your Stepmania songs folder path enables fluXis to list all songs in the library without re-exporting them. The importer walks the directory tree looking for `.sm` files recursively and builds `RealmMap` entries from the parsed data.
+
+    ### Limitations
+
+    - Only the `.sm` format is supported; the newer `.ssc` format used by Stepmania 5+ is not currently parsed.
+    - Roll notes (`4`) are approximated as a series of single notes rather than a true hold with automatic ticking, because fluXis has no direct roll equivalent.
+    - Stepmania charts with more than 4 columns (e.g., 6-panel, 8-panel) are imported but the `KeyCount` is fixed at 4, which may cause notes to be placed in unexpected lanes.
+    - Lighting events, background animations, and mod segments have no fluXis equivalent and are ignored.
+    - Imported maps cannot be saved or uploaded.
+  </Tab>
+</Tabs>
+
+---
+
+## Conversion Pipeline
+
+All three importers follow the same base pipeline defined in `MapImporter`:
+
+<Steps>
+  <Step title="Validate source file">
+    The importer checks that the file exists. If not, the import is aborted silently.
+  </Step>
+  <Step title="Create notification">
+    A task notification (e.g., "Importing osu!mania map…") is added to the notification overlay so you can track progress.
+  </Step>
+  <Step title="Create a temporary working folder">
+    A `temp/{filename}` directory is created in the fluXis storage root. If it already exists it is deleted first to prevent stale files from a previous failed import.
+  </Step>
+  <Step title="Parse and convert chart files">
+    Each format-specific parser converts the source data into `MapInfo` objects and writes them as `.fsc` JSON files into the temp folder. Media files are copied as-is.
+  </Step>
+  <Step title="Package as .fms">
+    The temp folder is zipped into a `.fms` file (fluXis Map Set), which is the standard distribution format for fluXis mapsets.
+  </Step>
+  <Step title="Finalize conversion">
+    `FinalizeConversion` hands the `.fms` file off to `FluXisImport`, which unpacks it, registers all maps and assets in the Realm database, and triggers a song-select refresh.
+  </Step>
+  <Step title="Clean up">
+    The temporary working folder is deleted.
+  </Step>
+</Steps>
+
+---
+
+## Notes on Imported Maps
+
+<CardGroup cols={2}>
+  <Card title="Read-only in the editor" icon="lock">
+    All imported maps have a `StatusInt` equal to the importer's internal ID, which is always ≥ 100. The editor's `canSave` check rejects saves for any map with `StatusInt ≥ 100`, keeping your converted library safe from accidental modification.
+  </Card>
+  <Card title="Playable immediately" icon="play">
+    After a successful import, maps appear in song select under the original song title and can be played with all standard fluXis gameplay features — mods, score tracking, and replays.
+  </Card>
+  <Card title="No online ID" icon="cloud-off">
+    Imported maps are local-only. They cannot be submitted to the fluXis online ranking queue or uploaded to the map hosting service.
+  </Card>
+  <Card title="Re-import to update" icon="arrows-clockwise">
+    If you update a map in the source game, re-drag the file onto fluXis to re-import it. The previous import is replaced in the database.
+  </Card>
+</CardGroup>

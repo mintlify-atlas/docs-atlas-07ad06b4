@@ -1,0 +1,279 @@
+---
+title: "Build a fluXis Plugin: Importers and Settings"
+sidebarTitle: "Plugins"
+description: "fluXis plugins extend the game with custom map importers and settings panels. Implement the Plugin abstract class to add support for new map formats."
+---
+
+The fluXis plugin system lets external assemblies extend the game without modifying core code. Plugins are most commonly used to add **map importers** — translation layers that convert beatmaps from other rhythm games (osu!, Quaver, StepMania) into the native fluXis `.fms` format. Each plugin can also declare a settings panel that appears in the in-game settings overlay, and a persistent configuration file backed by an INI store. At startup, `PluginManager` scans several well-known locations for qualifying assemblies and loads every `Plugin` subclass it finds.
+
+## The `Plugin` Abstract Class
+
+Every plugin begins by subclassing `fluXis.Plugins.Plugin`. The class is deliberately small — three abstract identity properties and three optional virtual methods:
+
+```csharp
+// fluXis/Plugins/Plugin.cs
+public abstract class Plugin
+{
+    // Required identity — must be overridden
+    public abstract string Name    { get; }
+    public abstract string Author  { get; }
+    public abstract Version Version { get; }
+
+    // Set automatically by PluginManager after loading
+    public string AssemblyName { get; internal set; }
+    public string Hash         { get; internal set; }
+
+    // Lazily created importer instance (null if plugin has no importer)
+    public MapImporter Importer => importer ??= CreateImporter();
+
+    // Override to provide a map importer
+    protected virtual MapImporter CreateImporter() => null;
+
+    // Override to initialise persistent config tied to plugin storage
+    public virtual void CreateConfig(Storage storage) { }
+
+    // Override to declare settings UI items shown in the settings overlay
+    public virtual List<SettingsItem> CreateSettings() => new();
+
+    // Produces a human-readable description, e.g. "osu! Importer v1.2.0 by Flustix"
+    public override string ToString() => $"{Name} v{Version} by {Author}";
+}
+```
+
+<Note>
+  `AssemblyName` and `Hash` are set to `internal set` — you do not assign them yourself. `PluginManager` populates them automatically when it loads the assembly, using the SHA-256 hash of the DLL file.
+</Note>
+
+### Identity Properties
+
+| Property | Type | Purpose |
+|---|---|---|
+| `Name` | `string` | Human-readable display name shown in the settings overlay. |
+| `Author` | `string` | Name of the plugin's author. |
+| `Version` | `System.Version` | Semantic version, e.g. `new Version(1, 2, 0)`. |
+| `AssemblyName` | `string` | Set by `PluginManager` — the CLR assembly name. |
+| `Hash` | `string` | SHA-256 of the DLL, set by `PluginManager` for integrity tracking. |
+
+## The `MapImporter` Class
+
+If your plugin adds support for a new map format, override `CreateImporter()` and return a subclass of `fluXis.Import.MapImporter`. The base class provides the full import infrastructure — temporary folder management, `.fms` package creation, database registration, and progress notifications — so your subclass only needs to implement the parsing logic.
+
+```csharp
+// fluXis/Import/MapImporter.cs (key members)
+public class MapImporter
+{
+    // File extensions your importer handles, e.g. new[] { ".osz", ".osk" }
+    public virtual string[] FileExtensions { get; } = Array.Empty<string>();
+
+    // Name shown in notifications, e.g. "osu!"
+    public virtual string GameName => "Unknown";
+
+    // Whether the importer can watch a game's library folder for new maps
+    public virtual bool SupportsAutoImport => false;
+
+    // Accent colour for UI elements (hex string)
+    public virtual string Color => "#000000";
+
+    // Called by the import pipeline with the path to the file being imported
+    public virtual void Import(string path) => throw new NotImplementedException();
+
+    // Returns maps already in the fluXis library that came from this importer
+    public virtual List<RealmMapSet> GetMaps() => new();
+
+    // --- Protected helpers provided by the base class ---
+
+    // Create a sandboxed temp folder; always paired with CleanUp()
+    protected string CreateTempFolder(string name);
+
+    // Delete the temp folder created above
+    protected static void CleanUp(string folder);
+
+    // Zip a folder into a .fms package ready for FluXisImport
+    protected string CreatePackage(string name, string folder);
+
+    // Hand the finished .fms file to FluXisImport to register it in the database
+    protected void FinalizeConversion(string path, TaskNotificationData notification = null);
+
+    // Create and display a progress notification
+    protected TaskNotificationData CreateNotification();
+}
+```
+
+<Tip>
+  A typical `Import()` implementation follows a three-step pattern: call `CreateTempFolder()`, parse the source file and write converted assets into that folder, call `CreatePackage()` then `FinalizeConversion()`, and finally call `CleanUp()`.
+</Tip>
+
+## Plugin Configuration with `PluginConfigManager`
+
+To persist settings between sessions, create a config manager that extends `PluginConfigManager<TLookup>`, where `TLookup` is an `enum` that defines your setting keys. The base class wraps osu!framework's `IniConfigManager`, so each plugin gets its own `<ID>.config.ini` file inside the shared plugins storage directory.
+
+```csharp
+// fluXis/Plugins/PluginConfigManager.cs
+public abstract class PluginConfigManager<TLookup> : IniConfigManager<TLookup>
+    where TLookup : struct, Enum
+{
+    // Used to derive the config filename: "{ID}.config.ini"
+    protected abstract string ID { get; }
+    protected sealed override string Filename => $"{ID}.config.ini";
+
+    protected PluginConfigManager(Storage storage) : base(storage) { }
+}
+```
+
+Instantiate your config manager inside `CreateConfig(Storage storage)` so that `PluginManager` can initialise it at load time before `CreateSettings()` is ever called.
+
+## How `PluginManager` Loads Plugins
+
+`PluginManager` is a regular osu!framework `Component` that runs three discovery passes in sequence when the game starts:
+
+<Steps>
+  <Step title="App-domain scan">
+    Iterates every assembly already loaded into the current `AppDomain`. It accepts assemblies whose name starts with `fluXis` (case-insensitive). This is how the built-in importers (`fluXis.Import.osu`, etc.) are picked up when built as part of the same solution.
+  </Step>
+  <Step title="Run-folder scan">
+    Searches the directory where the fluXis executable lives for files matching `fluXis.*.dll` and loads each one via `Assembly.LoadFrom`.
+  </Step>
+  <Step title="Plugins-folder scan">
+    Searches `<data>/plugins/` for files matching `fluXis.*.dll`. This is the primary drop-in location for third-party plugins. The folder is created automatically if it does not exist.
+  </Step>
+</Steps>
+
+For each assembly found, `PluginManager` reflects over its exported types, finds every concrete subclass of `Plugin`, creates an instance with `Activator.CreateInstance`, stamps `AssemblyName` and `Hash`, calls `CreateConfig(pluginStorage)`, and adds the plugin to its internal list.
+
+<Warning>
+  Your plugin assembly **must** be named with the `fluXis.` prefix (e.g. `fluXis.Import.MyGame.dll`) or `PluginManager` will silently ignore it during all three discovery passes.
+</Warning>
+
+## Real Example: The osu! Importer Plugin
+
+The `OsuPlugin` class is the reference implementation shipped with fluXis. It demonstrates all three extension points — identity, config, and settings — in a single concise class:
+
+<Tabs>
+  <Tab title="OsuPlugin.cs">
+    ```csharp
+    // fluXis.Import.osu/OsuPlugin.cs
+    public class OsuPlugin : Plugin
+    {
+        public override string Name    => "osu! Importer";
+        public override string Author  => "Flustix";
+        public override Version Version => new(1, 2, 0);
+
+        private OsuPluginConfig config;
+
+        // Return the concrete importer, passing it the config instance
+        protected override MapImporter CreateImporter() => new OsuImport(config);
+
+        // Initialise the INI config backed by plugin storage
+        public override void CreateConfig(Storage storage)
+            => config = new OsuPluginConfig(storage);
+
+        // Declare two settings items that appear in the in-game settings overlay
+        public override List<SettingsItem> CreateSettings() => new()
+        {
+            new SettingsToggle
+            {
+                Label       = "Skip Backgrounds",
+                Description = "Skips fetching the background from the map file, "
+                            + "speeding up importing by a lot.",
+                Bindable    = config.GetBindable<bool>(OsuPluginSetting.SkipBackgrounds)
+            },
+            new SettingsTextBox
+            {
+                Label       = "osu! Directory",
+                Description = "The directory where osu! is installed.",
+                Bindable    = config.GetBindable<string>(OsuPluginSetting.GameLocation)
+            }
+        };
+    }
+    ```
+  </Tab>
+  <Tab title="OsuPluginConfig.cs">
+    ```csharp
+    // fluXis.Import.osu/OsuPluginConfig.cs
+
+    // The enum defines all config keys for this plugin
+    public enum OsuPluginSetting
+    {
+        GameLocation,
+        SkipBackgrounds
+    }
+
+    public class OsuPluginConfig : PluginConfigManager<OsuPluginSetting>
+    {
+        // Config file will be written as "osu.config.ini"
+        protected override string ID => "osu";
+
+        public OsuPluginConfig(Storage storage) : base(storage) { }
+
+        protected override void InitialiseDefaults()
+        {
+            base.InitialiseDefaults();
+
+            // Default osu! install path on Windows
+            SetDefault(OsuPluginSetting.GameLocation,
+                Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "osu!"));
+
+            SetDefault(OsuPluginSetting.SkipBackgrounds, false);
+        }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Other Built-in Importers
+
+The pattern established by `OsuPlugin` is repeated identically across the other first-party importers. They differ only in their identity values, the config key enums, and which `MapImporter` subclass they return.
+
+<CardGroup cols={3}>
+  <Card title="StepmaniaPlugin" icon="music">
+    **Name:** Stepmania Importer  
+    **Version:** 1.1.0  
+    **Config key:** `GameLocation` — path to the StepMania Songs directory.
+  </Card>
+  <Card title="QuaverPlugin" icon="music">
+    **Name:** Quaver Importer  
+    **Version:** 1.2.0  
+    **Config key:** `GameLocation` — path to the Quaver install directory.
+  </Card>
+  <Card title="OsuPlugin" icon="music">
+    **Name:** osu! Importer  
+    **Version:** 1.2.0  
+    **Config keys:** `GameLocation` and `SkipBackgrounds`.
+  </Card>
+</CardGroup>
+
+## Minimum Viable Plugin
+
+The smallest possible plugin that compiles and loads correctly looks like this. It does nothing beyond registering itself, but it establishes the naming conventions and structure you need to build on:
+
+```csharp
+using System;
+using fluXis.Plugins;
+
+// Assembly must be named fluXis.Import.MyGame (or any fluXis.* prefix)
+namespace fluXis.Import.MyGame;
+
+public class MyGamePlugin : Plugin
+{
+    public override string  Name    => "MyGame Importer";
+    public override string  Author  => "Your Name";
+    public override Version Version => new(1, 0, 0);
+
+    // Add CreateImporter(), CreateConfig(), and CreateSettings()
+    // as your implementation grows.
+}
+```
+
+<Accordion title="What happens if CreateImporter() returns null?">
+  The `Importer` property on the base `Plugin` class is annotated `[CanBeNull]` and defaults to returning `null` if `CreateImporter()` is not overridden. `PluginManager` still loads the plugin and registers it in the UI — it simply won't appear in the file-association or drag-and-drop import pipeline. This is useful for plugins that provide only configuration or scripting extensions without a map importer.
+</Accordion>
+
+<Accordion title="Where is the plugins data folder located?">
+  `PluginManager` calls `storage.GetStorageForDirectory("plugins")` to obtain a scoped storage object, where `storage` is the root fluXis data storage resolved via osu!framework's dependency injection. On Windows this typically resolves to `%APPDATA%/fluXis/plugins/`. Config INI files and any plugin-written assets land inside this directory.
+</Accordion>
+
+<Accordion title="Can a plugin ship multiple Plugin subclasses?">
+  Yes. `PluginManager` iterates `assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(Plugin)))`, so every concrete `Plugin` subclass in an assembly is instantiated and registered independently. In practice, the built-in importers each ship exactly one plugin class per assembly.
+</Accordion>

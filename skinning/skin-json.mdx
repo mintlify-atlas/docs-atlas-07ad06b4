@@ -1,0 +1,288 @@
+---
+title: "The skin.json File Reference for fluXis Custom Skins"
+sidebarTitle: "skin.json"
+description: "The skin.json file defines global skin info, per-keymode layout, judgement colors, snap colors, and file overrides. Full field reference with defaults."
+---
+
+Every custom fluXis skin is driven by a single `skin.json` file at the root of the skin folder. fluXis deserialises this file into a `SkinJson` object each time the skin is loaded, and every runtime decision — from how wide a column is to what color a "Flawless" judgement displays — is made by reading values from that object. If the file is absent, fluXis silently substitutes a fully defaulted `SkinJson`; if it exists but is malformed, an error is written to the runtime log and the Default skin is used instead.
+
+## Top-level fields
+
+<ParamField body="info" type="object">
+  Metadata about the skin: its display name, creator, and accent color. This object is always written — even if you leave the section empty, fluXis will supply defaults. See [info object](#info-object) below.
+</ParamField>
+
+<ParamField body="1k" type="object">
+  Per-keymode layout configuration for **1-key** mode. Default `column_width`: `132`. See the [Keymode Config](/skinning/keymode-config) page for all available fields.
+</ParamField>
+
+<ParamField body="2k" type="object">
+  Per-keymode layout configuration for **2-key** mode. Default `column_width`: `126`.
+</ParamField>
+
+<ParamField body="3k" type="object">
+  Per-keymode layout configuration for **3-key** mode. Default `column_width`: `120`.
+</ParamField>
+
+<ParamField body="4k" type="object">
+  Per-keymode layout configuration for **4-key** mode. Default `column_width`: `114`.
+</ParamField>
+
+<ParamField body="5k" type="object">
+  Per-keymode layout configuration for **5-key** mode. Default `column_width`: `108`.
+</ParamField>
+
+<ParamField body="6k" type="object">
+  Per-keymode layout configuration for **6-key** mode. Default `column_width`: `102`.
+</ParamField>
+
+<ParamField body="7k" type="object">
+  Per-keymode layout configuration for **7-key** mode. Default `column_width`: `96`.
+</ParamField>
+
+<ParamField body="8k" type="object">
+  Per-keymode layout configuration for **8-key** mode. Default `column_width`: `90`.
+</ParamField>
+
+<ParamField body="9k" type="object">
+  Per-keymode layout configuration for **9-key** mode. Default `column_width`: `84`.
+</ParamField>
+
+<ParamField body="10k" type="object">
+  Per-keymode layout configuration for **10-key and above**. Any map with 10 or more keys uses this block. Default `column_width`: `78`.
+</ParamField>
+
+<ParamField body="judgements" type="object">
+  Hex color strings for each of the six judgement tiers. See [judgements object](#judgements-object) below.
+</ParamField>
+
+<ParamField body="snap-colors" type="object">
+  Hex color strings for note snap-divisor highlighting (1/3, 1/4, 1/6, 1/8, 1/12, 1/16, 1/24, 1/48). See [snap-colors object](#snap-colors-object) below.
+</ParamField>
+
+<ParamField body="overrides" type="object">
+  A flat key-value dictionary that remaps asset lookup paths. The key is the default logical path that fluXis would normally look for (without extension), and the value is the replacement path to use instead. Both paths are relative to the skin folder root. See [overrides dictionary](#overrides-dictionary) below.
+</ParamField>
+
+---
+
+## info object
+
+The `info` block identifies the skin to the player and to the game's skin selector UI.
+
+<ParamField body="name" type="string" default='""'>
+  The display name of the skin. Shown in the skin selector list. If empty or absent, fluXis falls back to the skin's folder name.
+</ParamField>
+
+<ParamField body="creator" type="string" default='"SKIN CREATOR"'>
+  The name of the person who made the skin. Shown beneath the skin name in the selector.
+</ParamField>
+
+<ParamField body="accent" type="string" default='""'>
+  A hex color string (e.g. `"#FF4FC8"`) used as an accent color for the skin in UI contexts that support it. An empty string means no accent override.
+</ParamField>
+
+<Note>
+  The `path`, `SteamWorkshop`, and `IconTexture` properties of `SkinInfo` are runtime-only and are never read from or written to `skin.json`. Do not include them in the file.
+</Note>
+
+---
+
+## judgements object
+
+The `judgements` block controls the color displayed for each hit accuracy tier in the judgement animation, combo counter, and results screen. Every value is a CSS-style hex string.
+
+<ParamField body="flawless" type="string" default='"#00C3FF"'>
+  Color for the **Flawless** tier — a perfect hit within the tightest timing window. Default is a bright cyan.
+</ParamField>
+
+<ParamField body="perfect" type="string" default='"#22FFB5"'>
+  Color for the **Perfect** tier. Default is a teal-green.
+</ParamField>
+
+<ParamField body="great" type="string" default='"#4BFF3B"'>
+  Color for the **Great** tier. Default is a bright green.
+</ParamField>
+
+<ParamField body="alright" type="string" default='"#FFF12B"'>
+  Color for the **Alright** tier. Default is a bright yellow.
+</ParamField>
+
+<ParamField body="okay" type="string" default='"#F7AD40"'>
+  Color for the **Okay** tier. Default is an amber orange.
+</ParamField>
+
+<ParamField body="miss" type="string" default='"#FF5555"'>
+  Color for the **Miss** tier. Default is a soft red.
+</ParamField>
+
+### GetColorForJudgement behavior
+
+At runtime, `SkinJson.GetColorForJudgement(judgement)` picks the correct hex string for the given tier and parses it with `Colour4.FromHex`. If the hex string is invalid or cannot be parsed, the method silently returns `Colour4.White` rather than throwing. Keep your color strings well-formed to avoid invisible-white judgement text.
+
+---
+
+## snap-colors object
+
+The `snap-colors` block defines the colors used to tint notes in the editor and optionally during gameplay when a skin's note textures implement `ICanHaveSnapColor`. Colors are keyed by beat divisor fraction as a JSON property name.
+
+<ParamField body="1/3" type="string" default='"#FF5555"'>
+  Color for notes snapped to a **1/3** beat divisor (third notes). Default is a coral red.
+</ParamField>
+
+<ParamField body="1/4" type="string" default='"#558EFF"'>
+  Color for notes snapped to a **1/4** beat divisor (quarter notes / straight beat). Default is a medium blue.
+</ParamField>
+
+<ParamField body="1/6" type="string" default='"#8EFF55"'>
+  Color for notes snapped to a **1/6** beat divisor (sixth notes). Default is a lime green.
+</ParamField>
+
+<ParamField body="1/8" type="string" default='"#FFE355"'>
+  Color for notes snapped to a **1/8** beat divisor (eighth notes). Default is a golden yellow.
+</ParamField>
+
+<ParamField body="1/12" type="string" default='"#C655FF"'>
+  Color for notes snapped to a **1/12** beat divisor (twelfth notes). Default is a purple.
+</ParamField>
+
+<ParamField body="1/16" type="string" default='"#55FFAA"'>
+  Color for notes snapped to a **1/16** beat divisor (sixteenth notes). Default is a mint green.
+</ParamField>
+
+<ParamField body="1/24" type="string" default='"#FF55AA"'>
+  Color for notes snapped to a **1/24** beat divisor (twenty-fourth notes). Default is a hot pink.
+</ParamField>
+
+<ParamField body="1/48" type="string" default='"#BFBFBF"'>
+  Color for notes snapped to a **1/48** beat divisor (forty-eighth notes or finer). Default is a mid-grey, marking these as "non-standard" snaps visually.
+</ParamField>
+
+<Note>
+  Snap colors are ordered internally as an array: `[1/3, 1/4, 1/6, 1/8, 1/12, 1/16, 1/24, 1/48]`. The `GetColor(index)` method takes a zero-based index into that array, not a raw divisor value. Invalid indices return `Colour4.White`. Results are cached after the first parse to avoid repeated hex parsing during gameplay.
+</Note>
+
+---
+
+## overrides dictionary
+
+The `overrides` block is a flat JSON object where each key is a logical asset path (without file extension) and each value is a replacement path to use instead. Both paths are relative to the skin folder.
+
+```json
+{
+  "overrides": {
+    "HitObjects/Note/4k-1": "CustomAssets/my-note",
+    "Stage/hitline":         "Stage/my-hitline",
+    "UserInterface/background": "Backgrounds/menu-bg"
+  }
+}
+```
+
+At runtime, `SkinJson.GetOverride(key)` looks up the key and returns the replacement string, or `null` if no override exists. `GetOverrideOrDefault(key)` returns the replacement if found, or the original key unchanged — this is the call used in `CustomSkin` before appending a file extension and checking whether the file exists in storage.
+
+<Warning>
+  Override values must not include a file extension. fluXis appends `.png` (or the appropriate extension) automatically before checking whether the file exists. Including an extension in the value will cause the lookup to fail silently.
+</Warning>
+
+### GetKeymode behavior
+
+`SkinJson.GetKeymode(keyCount)` maps an integer key count to its corresponding `SkinKeymode` block:
+
+| Key count | Returns |
+|-----------|---------|
+| 1 | `1k` block |
+| 2 | `2k` block |
+| 3 | `3k` block |
+| 4 | `4k` block |
+| 5 | `5k` block |
+| 6 | `6k` block |
+| 7 | `7k` block |
+| 8 | `8k` block |
+| 9 | `9k` block |
+| 10 or more | `10k` block |
+
+Key counts below 1 are invalid and throw an `ArgumentOutOfRangeException`. All maps with 10 or more keys share the `10k` block.
+
+---
+
+## Complete example
+
+The following `skin.json` is a complete, annotated example covering every top-level section. Only fields you want to change from the defaults need to be included.
+
+```json
+{
+  "info": {
+    "name": "Neon Pulse",
+    "creator": "YourName",
+    "accent": "#FF4FC8"
+  },
+
+  "4k": {
+    "column_width": 110,
+    "hit_position": 140,
+    "tint_notes": true,
+    "tint_lns": true,
+    "tint_receptors": false,
+    "receptors_first": false,
+    "receptor_offset": 0,
+    "colors": ["#FF4FC8", "#A020F0", "#A020F0", "#FF4FC8"]
+  },
+
+  "7k": {
+    "column_width": 90,
+    "hit_position": 130,
+    "tint_notes": true,
+    "tint_lns": true,
+    "colors": ["#FF4FC8", "#A020F0", "#FF4FC8", "#FFFFFF", "#FF4FC8", "#A020F0", "#FF4FC8"]
+  },
+
+  "judgements": {
+    "flawless": "#00C3FF",
+    "perfect":  "#22FFB5",
+    "great":    "#4BFF3B",
+    "alright":  "#FFF12B",
+    "okay":     "#F7AD40",
+    "miss":     "#FF5555"
+  },
+
+  "snap-colors": {
+    "1/3":  "#FF5555",
+    "1/4":  "#558EFF",
+    "1/6":  "#8EFF55",
+    "1/8":  "#FFE355",
+    "1/12": "#C655FF",
+    "1/16": "#55FFAA",
+    "1/24": "#FF55AA",
+    "1/48": "#BFBFBF"
+  },
+
+  "overrides": {
+    "Stage/hitline":            "Stage/neon-hitline",
+    "Lighting/column-lighting": "Lighting/neon-lighting"
+  }
+}
+```
+
+<Tip>
+  You can omit any section you do not need — fluXis initialises every field to its default value before deserialising the JSON. A minimal skin that only sets the info block and a custom hit sound is perfectly valid.
+</Tip>
+
+---
+
+## Validation and error handling
+
+<Accordion title="What happens when skin.json is missing?">
+  If the skin folder does not contain a `skin.json`, fluXis logs an informational message and uses a fully defaulted `SkinJson` object. All layout values, colors, and snap colors will be their built-in defaults. Asset loading continues normally using the files in the folder.
+</Accordion>
+
+<Accordion title="What happens when skin.json has a JSON syntax error?">
+  A `JsonReaderException` is caught by `SkinManager`, an error is written to the runtime log, and fluXis continues with the Default skin active instead. The broken skin will still appear in the skin list but will not change any visuals.
+</Accordion>
+
+<Accordion title="What happens when a hex color string is invalid?">
+  Each color parse is wrapped in a `try/catch` or a `TryParseHex` check. An unparseable hex value silently falls back to `Colour4.White`. Snap color parses are additionally cached, so a bad value is only attempted once per session.
+</Accordion>
+
+<Accordion title="Can I add extra fields to skin.json?">
+  Yes — Newtonsoft.Json ignores unknown properties by default, so you can add comments-style fields or future-looking keys without breaking anything. Only the documented fields above are read by the game.
+</Accordion>

@@ -1,0 +1,182 @@
+---
+title: "Game Modifiers: Customize Your Full fluXis Experience"
+sidebarTitle: "Mods"
+description: "fluXis mods span six categories: rate, difficulty, and automation. Each mod shows its score multiplier, rankable flag, and incompatible mods list."
+---
+
+Mods (game modifiers) let you customize the rules of a play session before you begin. Some mods make the game easier and lower your score multiplier as a trade-off; others ramp up difficulty and reward you with a bonus. A handful of special mods automate gameplay or record non-standard conditions. Every mod exposes a **score multiplier**, a **rankable** flag indicating whether the play is eligible for online leaderboard submission, and an optional **incompatible mods** list that prevents conflicting combinations from being selected at the same time.
+
+## Mod Categories
+
+fluXis groups mods into six `ModType` categories:
+
+| Category | Description |
+|----------|-------------|
+| **Rate** | Adjusts playback speed of the map. |
+| **DifficultyDecrease** | Makes the map easier to clear. |
+| **DifficultyIncrease** | Raises the stakes or punishes mistakes more harshly. |
+| **Automation** | Removes the need for player input. |
+| **Misc** | Alters map content or visual presentation. |
+| **Special** | System-assigned states (e.g., the game was paused). |
+
+## Incompatible Mods
+
+Many mods cannot be used together because their effects directly conflict. For example, **Easy** and **Hard** cannot both be active — one reduces health requirements while the other increases drain. When you select a mod, any incompatible mod is automatically deselected. The `IncompatibleMods` array in each mod's implementation enforces these rules.
+
+---
+
+## All Available Mods
+
+<Accordion title="Rate — Change the map's playback speed">
+  **Name:** Rate  
+  **Acronym:** Displays as `{rate}x` (e.g., `1.5x`, `0.75x`)  
+  **Type:** Rate  
+  **Rankable:** Yes  
+  **Score Multiplier:** `1.0 + (rate − 1.0) × 0.4`  
+  **Incompatible Mods:** None
+
+  The Rate mod speeds up or slows down the entire song and all timing windows proportionally. The score multiplier scales with the chosen rate — playing at 1.5× speed gives a meaningful bonus, while 0.75× applies a penalty. Performance Rating applies a more aggressive curve for rate changes: rates below 1.0 are penalized cubically, while rates above 1.0 are rewarded by `1.5 × rate − 0.5`.
+
+  <Tip>
+    Rate is one of the few mods with no incompatibilities, so it can be freely combined with difficulty mods, Mirror, or No LN for a fully custom challenge.
+  </Tip>
+</Accordion>
+
+<Accordion title="Easy — Relaxed health requirement">
+  **Name:** Easy  
+  **Acronym:** `EZ`  
+  **Type:** DifficultyDecrease  
+  **Rankable:** Yes  
+  **Score Multiplier:** 0.7×  
+  **Incompatible Mods:** Hard, No Fail  
+  **Performance Rating modifier:** ×0.80
+
+  In Easy mode, your health bar starts at **0%** instead of the normal starting value. You need to reach and maintain **80% health** by the end of the map in order to pass. This flips the usual health dynamic — rather than preventing your bar from draining, you must build it up. A score multiplier of 0.7× reflects the reduced difficulty.
+</Accordion>
+
+<Accordion title="Hard — Aggressive health drain">
+  **Name:** Hard  
+  **Acronym:** `HD`  
+  **Type:** DifficultyIncrease  
+  **Rankable:** Yes  
+  **Score Multiplier:** 1.04×  
+  **Incompatible Mods:** Easy, No Fail  
+  **Performance Rating modifier:** ×1.05
+
+  Hard mod activates accelerated health drain: the more notes you miss, the faster your health depletes. A single bad section can escalate into a cascade failure if you cannot recover quickly. The slight score multiplier bonus and PR boost reward players who can manage the pressure.
+</Accordion>
+
+<Accordion title="No Fail — Impossible to fail">
+  **Name:** No Fail  
+  **Acronym:** `NF`  
+  **Type:** DifficultyDecrease  
+  **Rankable:** Yes  
+  **Score Multiplier:** 0.5×  
+  **Incompatible Mods:** Easy, Hard, AutoPlay, Fragile, Flawless  
+  **Performance Rating modifier:** ×0.40
+
+  No Fail disables all failure conditions. No matter how many notes you miss or how low your health drops, the map will play through to the end. This is ideal for practicing difficult sections without the interruption of a failed attempt. The significant 0.5× score multiplier and 0.40× PR penalty reflect the complete removal of risk.
+</Accordion>
+
+<Accordion title="Flawless — Only perfect hits allowed">
+  **Name:** Flawless  
+  **Acronym:** `FL`  
+  **Type:** DifficultyIncrease  
+  **Rankable:** Yes  
+  **Score Multiplier:** 1.0×  
+  **Incompatible Mods:** No Fail, AutoPlay, Fragile
+
+  Flawless adds an extra fail condition: any judgement below **Flawless** immediately ends the map. Every note must be hit within the tightest timing window or you fail. This is the ultimate precision challenge — even a Perfect judgement is treated as a failure.
+</Accordion>
+
+<Accordion title="Fragile — One miss and you're done">
+  **Name:** Fragile  
+  **Acronym:** `FR`  
+  **Type:** DifficultyIncrease  
+  **Rankable:** Yes  
+  **Score Multiplier:** 1.0×  
+  **Incompatible Mods:** Flawless, AutoPlay, No Fail
+
+  Fragile adds a fail condition specifically for **Misses**. A single missed note ends your play immediately. Unlike Flawless, late or early hits that earn Okay/Alright/Great are still acceptable — only a complete Miss triggers failure. This puts emphasis on coverage and not dropping notes, rather than pure timing precision.
+</Accordion>
+
+<Accordion title="AutoPlay — Watch the map play itself">
+  **Name:** AutoPlay  
+  **Acronym:** `AP`  
+  **Type:** Automation  
+  **Rankable:** No  
+  **Score Multiplier:** 1.0×  
+  **Incompatible Mods:** No Fail, Fragile, Flawless
+
+  AutoPlay takes over all input and hits every note with perfect Flawless timing. No keypresses are required. This is useful for previewing maps, checking patterns, or watching a demonstration. Scores from AutoPlay sessions are not submitted to any leaderboard.
+</Accordion>
+
+<Accordion title="Mirror — Flip the lane layout horizontally">
+  **Name:** Mirror  
+  **Acronym:** `MR`  
+  **Type:** Misc  
+  **Rankable:** Yes  
+  **Score Multiplier:** 1.0×  
+  **Incompatible Mods:** None
+
+  Mirror reflects all note lanes horizontally. For a 4K map, lane 1 becomes lane 4, lane 2 becomes lane 3, and so on. This is achieved by setting each note's lane to `keyCount − lane + 1`. It is useful for training weaker hand dominance or experiencing a familiar chart from a fresh perspective.
+</Accordion>
+
+<Accordion title="No LN — Replace all long notes with taps">
+  **Name:** No LN  
+  **Acronym:** `NLN`  
+  **Type:** Misc  
+  **Rankable:** Yes  
+  **Score Multiplier:** 0.8×  
+  **Incompatible Mods:** None  
+  **Performance Rating modifier:** ×0.60
+
+  No LN removes all hold note durations — every long note is converted into a single tap note by setting its `holdtime` to 0. This significantly changes the feel of LN-heavy maps and is often used for practice or by players who prefer a pure tapping experience. The PR modifier of 0.60× reflects the reduced complexity.
+</Accordion>
+
+<Accordion title="No Mines — Remove all landmines">
+  **Name:** No Mines  
+  **Acronym:** `NMN`  
+  **Type:** Misc  
+  **Rankable:** Yes  
+  **Score Multiplier:** 0.8×  
+  **Incompatible Mods:** None  
+  **Performance Rating modifier:** ×0.60
+
+  No Mines strips all landmine objects from the map before gameplay begins. If a map relies heavily on landmines as a core mechanic, this mod substantially reduces its difficulty. The 0.60× PR modifier accounts for the removal of an entire avoidance challenge.
+</Accordion>
+
+<Accordion title="No SV — Remove scroll velocity changes">
+  **Name:** No SV  
+  **Acronym:** `NSV`  
+  **Type:** Misc  
+  **Rankable:** Yes  
+  **Score Multiplier:** 0.8×  
+  **Incompatible Mods:** None  
+  **Performance Rating modifier:** ×0.60
+
+  No SV resets all scroll velocity multipliers to 1.0 and clears associated scroll-related events (HitObjectEase, ScrollMultiply, TimeOffset). Maps that use SVs for visual gimmicks or reading challenges become uniform in scroll speed, making patterns much more predictable.
+</Accordion>
+
+<Accordion title="No Events — Strip all visual effects">
+  **Name:** No Events  
+  **Acronym:** `NEV`  
+  **Type:** Misc  
+  **Rankable:** No  
+  **Score Multiplier:** 0.6×  
+  **Incompatible Mods:** None  
+  **Performance Rating modifier:** ×0.40
+
+  No Events removes all storyboard visual events including flashes, color fades, pulses, playfield movement/scale/rotation, layer fades, shakes, shader effects, and beat pulses. This creates a clean, distraction-free gameplay environment. Plays with this mod are **not rankable** and receive a significant PR penalty.
+</Accordion>
+
+<Accordion title="Paused — Score was paused mid-play">
+  **Name:** Paused  
+  **Acronym:** `PA`  
+  **Type:** Special  
+  **Rankable:** No  
+  **Score Multiplier:** 1.0×  
+  **Incompatible Mods:** None
+
+  The Paused mod is automatically applied by the game when a player pauses during a play session. It cannot be manually selected. Scores with this mod are saved to the local leaderboard for reference but are never submitted to the online leaderboard. This ensures that paused plays cannot exploit reaction time or retry advantage.
+</Accordion>

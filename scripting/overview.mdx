@@ -1,0 +1,110 @@
+---
+title: "Lua Scripting in fluXis: Storyboards and Skin Effects"
+sidebarTitle: "Overview"
+description: "fluXis uses Lua scripts to drive storyboards and skins. Scripts run via NLua with access to audio analysis, easing functions, and visual element APIs."
+---
+
+fluXis exposes a Lua scripting system that lets map creators and skin authors add dynamic, audio-reactive visual effects far beyond what static storyboard editors allow. Scripts are short Lua programs that create and animate visual elements, sample audio frequency data in real time, read map metadata, and define user-configurable parameters — all driven by the same familiar Lua syntax used across the game-dev world.
+
+## Two Scripting Contexts
+
+fluXis recognises two distinct scripting environments. Each context injects its own set of global objects and functions on top of the shared base API.
+
+<CardGroup cols={2}>
+  <Card title="Storyboard Scripts" icon="film">
+    A `.lua` file placed in the same folder as your map's `.fsc` file. The engine calls a top-level `process()` function and passes the parent `StoryboardElement` as its only argument. The script constructs visual elements and calls `Add()` to register them with the storyboard.
+  </Card>
+  <Card title="Skin Scripts" icon="paintbrush">
+    Scripts associated with a skin. They share the same base API and additionally have access to the `skin` global for querying sprite ratios, column widths, hit positions, and receptor offsets on a per-keycount basis.
+  </Card>
+</CardGroup>
+
+## Lua Runtime — NLua Bridge
+
+fluXis embeds Lua through **NLua**, a .NET binding that hosts a standard Lua 5.4 interpreter inside the game process. Every Lua value you work with maps transparently to a .NET object:
+
+- `number` ↔ `double` / `float`
+- `boolean` ↔ `bool`
+- `string` ↔ `System.String`
+- Userdata objects (like `Vector2`, `Color4`, element constructors) are .NET class instances bridged by NLua
+
+<Note>
+  Because the runtime is NLua / Lua 5.4, standard Lua 5.4 features (bitwise operators, integer division `//`, `<close>` variables, etc.) are all available. The `import` function is intentionally left open but loading arbitrary .NET assemblies from scripts is not supported.
+</Note>
+
+## What Scripts Can Do
+
+<Accordion title="Create and animate visual elements">
+  Storyboard scripts call constructor functions (`StoryboardBox()`, `StoryboardSprite()`, `StoryboardText()`, `StoryboardCircle()`, etc.) to build element objects, configure their position, size, colour, and layer, attach animations with `:animate()`, then register them via `Add()`.
+</Accordion>
+
+<Accordion title="React to audio with FFT analysis">
+  The `AudioAnalyzer` global exposes `AmplitudesInRange(startTime, endTime, interval, amplitudeCount, parameters)`, which returns a table of `FFTFrame` values pre-computed for a time range. Each frame contains per-bin amplitudes, frequency band levels (low / mid / high), and helper methods like `DetectBeat()` and `GetPeakAmplitude()`.
+</Accordion>
+
+<Accordion title="Read map and player data">
+  The `map` global lets scripts query notes, timing points, scroll velocities, and map events within a time range. The `metadata` global exposes the map's title, artist, mapper, difficulty name, and file paths for the background and cover images. The `settings` global provides the player's scroll speed and scroll direction preference.
+</Accordion>
+
+<Accordion title="Define user-configurable parameters">
+  `DefineParameter(key, title, type, fallback)` registers a named parameter that the editor can expose in its UI. Scripts then read parameter values back on individual elements using `element:param(key, fallback)`. Supported types are `"string"`, `"int"`, `"float"`, and `"boolean"`.
+</Accordion>
+
+## ScriptRunner Internals
+
+The C# class `ScriptRunner` is the base for all scripting contexts. Its constructor:
+
+1. Creates a new `Lua` state with UTF-8 encoding.
+2. Registers the `mathf` field (a `LuaMath` instance) and the `FFTParameters` preset holder.
+3. Registers all shared global functions: `print`, `RandomRange`, `Easing`, `Vector2`, `Color4`, `Vector2Zero`, `Vector2One`, `BPMAtTime`, `DefineParameter`, and `SetVersion`.
+4. Subclasses (e.g. `StoryboardScriptRunner`) add context-specific globals such as `screen`, `metadata`, `settings`, `skin`, `map`, `AudioAnalyzer`, and the element constructors.
+
+Scripts are executed by calling `ScriptRunner.Run(code)`, which calls `Lua.DoString(code)` directly. For storyboard scripts specifically, after the top-level code runs, the engine retrieves the Lua function named `process` and calls it with the parent element.
+
+## SetVersion()
+
+Every script should declare its target API version as the very first line:
+
+```lua
+SetVersion(2)
+```
+
+The current storyboard version is **2**. The engine uses this version number to apply backward-compatibility transforms when ingesting the elements your script produces. For example, upgrading from version 1 to version 2 shifts all animation start times to be relative to the element's own start time rather than absolute map time.
+
+<Warning>
+  Omitting `SetVersion()` defaults the version to `0`, which may cause animation timing to be misinterpreted by future engine updates. Always set the version explicitly.
+</Warning>
+
+## How Scripts Are Loaded
+
+For **storyboard scripts**, the map loader looks for a `StoryboardElement` of type `Script` inside the storyboard JSON. The element's parameters hold the Lua source. `StoryboardScriptRunner` is instantiated with references to the `MapInfo`, the `AudioAnalyzer`, the parent `Storyboard`, the current `LuaSettings`, and the active `ISkin`. After `Run(code)` executes the script body, the runner calls `Process(element)` for each Script-type element, invoking the Lua `process()` function.
+
+```lua
+SetVersion(2)
+
+function process(parent)
+  local box = StoryboardBox()
+  box.layer  = Layer("Background")
+  box.time   = 0
+  box.endtime = 10000
+  box.x      = screen.x / 2
+  box.y      = screen.y / 2
+  box.anchor = Anchor("Centre")
+  box.origin = Anchor("Centre")
+  box.width  = 200
+  box.height = 200
+  box.color  = 0xFF4488FF
+  Add(box)
+end
+```
+
+## Further Reading
+
+<CardGroup cols={2}>
+  <Card title="Storyboard API" href="/scripting/storyboard-api" icon="layer-group">
+    All element constructors, the `Add()` function, global storyboard objects, and the base element field reference.
+  </Card>
+  <Card title="Global Functions" href="/scripting/global-functions" icon="function">
+    Shared globals available in every script: math utilities, `Vector2`, `Color4`, `Easing`, audio analysis, map data, and `DefineParameter`.
+  </Card>
+</CardGroup>

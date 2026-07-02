@@ -1,0 +1,291 @@
+---
+title: "Configure fluXis: Complete Game Settings Reference"
+sidebarTitle: "Settings"
+description: "Full reference for fluXis settings: scroll speed, direction, lane covers, audio offset, HUD visibility, visual display options, and graphics toggles."
+---
+
+fluXis exposes a comprehensive set of configuration options through its settings panel, allowing you to tailor every aspect of the game to your hardware, preferences, and playstyle. Settings are persisted in an INI-format config file managed by the `FluXisConfig` class. Each setting has a sensible default value so the game is playable out of the box, but dialing in your scroll speed, audio offset, and visual preferences will meaningfully improve your experience. The categories below mirror how settings are organized internally.
+
+## Gameplay
+
+These settings directly affect how the game feels and looks during an active play session.
+
+<Accordion title="Scroll Direction">
+  **Setting:** `ScrollDirection`  
+  **Default:** `Down`  
+  **Options:** `Down`, `Up`
+
+  Controls the direction notes travel on the playfield. `Down` scrolls notes from the top of the screen toward the bottom, where the judgement line sits. `Up` reverses this, with notes rising from the bottom toward the top. Choose whichever feels most natural — it does not affect timing windows or scoring.
+</Accordion>
+
+<Accordion title="Scroll Speed">
+  **Setting:** `ScrollSpeed`  
+  **Default:** `3.0`  
+  **Range:** 2.0 – 8.0 (step 0.1)
+
+  Determines how quickly notes approach the judgement line. A higher value makes notes appear closer together and move faster across the screen, requiring quicker visual processing. A lower value spreads notes further apart, giving more lead time but potentially making dense patterns harder to read. This setting does not alter the actual timing windows — it is purely visual.
+
+  <Tip>
+    Most players start around 2.5–4.0 and increase gradually as their reading speed improves. Try to find a speed where you can see upcoming patterns without notes blurring together.
+  </Tip>
+</Accordion>
+
+<Accordion title="Snap Coloring">
+  **Setting:** `SnapColoring`  
+  **Default:** `false`
+
+  When enabled, note colors change based on their beat snap division (e.g., 1/4 notes are one color, 1/8 notes another). This is helpful for reading rhythmically complex patterns, especially during charting review or practice of difficult sections.
+</Accordion>
+
+<Accordion title="Timing Lines">
+  **Setting:** `TimingLines`  
+  **Default:** `true`
+
+  Toggles the display of horizontal guide lines that travel down the playfield in sync with the beat. These lines provide a visual rhythm reference and can help you internalize the beat before notes arrive. Disable them if you find them distracting.
+</Accordion>
+
+<Accordion title="Hide Flawless Judgements">
+  **Setting:** `HideFlawless`  
+  **Default:** `false`
+
+  When enabled, the on-screen judgement splash will not appear for Flawless hits — the highest tier judgement. This keeps the playfield cleaner for players who consistently achieve Flawless hits and do not need the visual confirmation. Misses and lower judgements still display.
+</Accordion>
+
+<Accordion title="Show Early / Late Indicator">
+  **Setting:** `ShowEarlyLate`  
+  **Default:** `false`
+
+  Displays an "Early" or "Late" label alongside each judgement splash to indicate which direction your timing error fell. This is extremely useful for diagnosing and correcting a consistent offset bias. If you see mostly "Late" labels, try lowering your global audio offset.
+</Accordion>
+
+<Accordion title="Judgement Splash">
+  **Setting:** `JudgementSplash`  
+  **Default:** `true`
+
+  Controls whether an animated splash graphic appears near the judgement line whenever you hit a note. Disable this for a cleaner, more minimal HUD — though you will lose the instant per-note feedback that splashes provide.
+</Accordion>
+
+<Accordion title="Lane Cover — Top">
+  **Setting:** `LaneCoverTop`  
+  **Default:** `0.0`  
+  **Range:** 0.0 – 1.5 (step 0.01)
+
+  Adds an opaque cover that hides the upper portion of the playfield from view. A value of 0.0 means no cover. A value of 0.5 covers the top half of the lanes. Advanced players use this to force reading closer to the judgement line rather than tracking notes from far away.
+</Accordion>
+
+<Accordion title="Lane Cover — Bottom">
+  **Setting:** `LaneCoverBottom`  
+  **Default:** `0.0`  
+  **Range:** 0.0 – 1.5 (step 0.01)
+
+  Adds an opaque cover to the lower portion of the playfield, hiding notes just before they reach the judgement line. This is a high-difficulty technique used by experienced players to practice reading by rhythm alone. Values above 0.0 can make the game significantly harder.
+</Accordion>
+
+<Accordion title="Dim and Fade">
+  **Setting:** `DimAndFade`  
+  **Default:** `true`
+
+  When enabled, notes fade out slightly as they travel past the judgement line, and the area around the line receives a subtle dimming effect to draw focus. Disabling this creates a more uniform playfield appearance.
+</Accordion>
+
+<Accordion title="Hitsounding">
+  **Setting:** `Hitsounding`  
+  **Default:** `true`
+
+  Toggles whether hit sounds play when notes are struck. Hitsounds provide immediate auditory feedback on your timing and are an important part of the rhythm game experience for many players. The volume is controlled separately by **Hit Sound Volume** in the Audio section.
+</Accordion>
+
+<Accordion title="Background Video">
+  **Setting:** `BackgroundVideo`  
+  **Default:** `true`
+
+  Enables or disables playback of background videos embedded in maps. Disabling this can improve performance on lower-end hardware or reduce distraction during gameplay.
+</Accordion>
+
+<Accordion title="Background Dim">
+  **Setting:** `BackgroundDim`  
+  **Default:** `0.40`  
+  **Range:** 0.0 – 1.0 (step 0.01)
+
+  Controls how darkened the background image or video becomes during gameplay. A value of 0.0 shows the background at full brightness, while 1.0 makes it completely black. The default of 0.40 provides a good balance between atmosphere and note visibility.
+</Accordion>
+
+<Accordion title="Background Blur">
+  **Setting:** `BackgroundBlur`  
+  **Default:** `0.0`  
+  **Range:** 0.0 – 1.0 (step 0.01)
+
+  Applies a blur filter to the gameplay background. Higher values create a frosted-glass effect that softens the background, which can improve note contrast on visually busy backgrounds.
+</Accordion>
+
+<Accordion title="Background Pulse">
+  **Setting:** `BackgroundPulse`  
+  **Default:** `false`
+
+  When enabled, the background subtly pulses in sync with the beat of the music. This is a purely cosmetic effect and has no impact on gameplay or performance.
+</Accordion>
+
+<Accordion title="Lane Switch Alerts">
+  **Setting:** `LaneSwitchAlerts`  
+  **Default:** `true`
+
+  Displays a brief on-screen notification when a map's key count changes mid-song (a lane switch event). Disable this if you find the alerts disruptive on maps you already know well.
+</Accordion>
+
+<Accordion title="HUD Visibility">
+  **Setting:** `HudVisibility`  
+  **Default:** `Always`  
+  **Options:** `Always`, `HideInBreaks`, `Never`
+
+  Controls when the gameplay HUD (score, combo, accuracy, etc.) is visible. `HideInBreaks` hides the HUD during break sections with no notes. `Never` hides it entirely for a clean, cinematic experience.
+</Accordion>
+
+<Accordion title="Gameplay Leaderboard">
+  **Setting:** `GameplayLeaderboardVisible` / `GameplayLeaderboardMode`  
+  **Defaults:** Visible: `true`, Mode: `Score`
+
+  The in-game leaderboard shows other players' scores in real time during a play. `GameplayLeaderboardVisible` toggles it on or off. `GameplayLeaderboardMode` controls how entries are sorted — by `Score` or by `Accuracy`.
+</Accordion>
+
+---
+
+## UI
+
+<Accordion title="UI Scale">
+  **Setting:** `UIScale`  
+  **Default:** `1.0`  
+  **Range:** 1.0 – 1.25 (step 0.01)
+
+  Scales the overall size of the game's user interface. Useful on high-DPI displays or for accessibility. Values above 1.0 enlarge menus, buttons, and text proportionally.
+</Accordion>
+
+<Accordion title="Hold to Confirm">
+  **Setting:** `HoldToConfirm`  
+  **Default:** `400 ms`  
+  **Range:** 0 – 1000 ms (step 200 ms)
+
+  Sets the duration you must hold a confirm button to execute certain actions (such as deleting content or confirming an irreversible choice). Setting this to 0 disables hold-to-confirm entirely and triggers actions on a single press.
+</Accordion>
+
+<Accordion title="Skip Intro">
+  **Setting:** `SkipIntro`  
+  **Default:** `false`
+
+  When enabled, the animated intro sequence that plays when the game launches is skipped, taking you directly to the main menu. Recommended if you start fluXis frequently and find the intro repetitive.
+</Accordion>
+
+<Accordion title="Parallax">
+  **Setting:** `Parallax`  
+  **Default:** `true`
+
+  Enables a subtle parallax depth effect on background images as you move your cursor. Disabling this creates a flatter, static background and may slightly reduce CPU usage.
+</Accordion>
+
+<Accordion title="Show Storyboard Video">
+  **Setting:** `ShowStoryboardVideo`  
+  **Default:** `true`
+
+  Toggles storyboard video layers within maps that include visual scripting. Disabling this turns off storyboard-driven video elements while still allowing background images to display.
+</Accordion>
+
+<Accordion title="Show Background Shaders">
+  **Setting:** `ShowBackgroundShaders`  
+  **Default:** `false`
+
+  Enables post-processing shader effects applied to the game background. These can be resource-intensive on lower-end systems. Disabled by default to ensure broad hardware compatibility.
+</Accordion>
+
+---
+
+## Audio
+
+<Accordion title="Global Offset">
+  **Setting:** `GlobalOffset`  
+  **Default:** `0 ms`  
+  **Range:** −1000 – +1000 ms (step 1 ms)
+
+  Shifts the timing window for all notes globally, compensating for audio latency introduced by your sound system, DAC, or wireless headphones. A positive value delays the timing window (hits are accepted later), while a negative value advances it. If you consistently get "Late" judgements, increase this value; if you get "Early" judgements, decrease it.
+
+  <Tip>
+    Use the **Show Early / Late** setting in the Gameplay section to diagnose your offset before making adjustments. Small increments of 5–10 ms are usually all that's needed.
+  </Tip>
+</Accordion>
+
+<Accordion title="Inactive Volume">
+  **Setting:** `InactiveVolume`  
+  **Default:** `0.50`  
+  **Range:** 0.0 – 1.0 (step 0.01)
+
+  The audio volume level when the fluXis window is not focused. Setting this to 0 will mute the game entirely when you tab away. The default of 0.50 keeps music audible at half volume in the background.
+</Accordion>
+
+<Accordion title="Hit Sound Volume">
+  **Setting:** `HitSoundVolume`  
+  **Default:** `1.0`  
+  **Range:** 0.0 – 1.0 (step 0.01)
+
+  Controls the volume of hit sound effects independently of the main audio track. Lowering this lets you hear the music more clearly while still getting some auditory feedback from keypresses. Set to 0.0 to silence hitsounds without disabling them entirely.
+</Accordion>
+
+<Accordion title="UI Panning">
+  **Setting:** `UIPanning`  
+  **Default:** `0.75`  
+  **Range:** 0.0 – 1.0 (step 0.01)
+
+  Controls the stereo panning width of UI sound effects (button clicks, menu transitions, etc.). A value of 1.0 uses the full stereo field; 0.0 centers all UI audio to mono. This does not affect gameplay hitsounds.
+</Accordion>
+
+<Accordion title="Hitsound Panning">
+  **Setting:** `HitsoundPanning`  
+  **Default:** `1.0`  
+  **Range:** 0.0 – 1.0 (step 0.01)
+
+  Controls the stereo panning width of gameplay hitsounds. At 1.0, hitsounds for notes in the leftmost lane come from the left speaker and rightmost from the right. Reducing this towards 0.0 moves all hitsounds toward the center channel.
+</Accordion>
+
+---
+
+## Graphics
+
+<Accordion title="Show FPS">
+  **Setting:** `ShowFps`  
+  **Default:** `false`
+
+  Displays a real-time frames-per-second counter in the corner of the screen. Useful when diagnosing performance issues or monitoring the effect of visual settings on framerate.
+</Accordion>
+
+<Accordion title="Disable Bloom">
+  **Setting:** `DisableBloom`  
+  **Default:** `false`
+
+  Disables the bloom post-processing effect that creates a soft glow around bright UI elements and notes. Disabling bloom can noticeably improve performance on integrated graphics or low-end GPUs, and some players prefer the sharper look without it.
+</Accordion>
+
+---
+
+## Account
+
+<Warning>
+  The `Username`, `Token`, and `ServerUrl` settings are managed automatically when you log in through the in-game interface. Do not edit these values manually in the config file unless you know what you are doing — an invalid token will prevent online features from working.
+</Warning>
+
+<Accordion title="Username">
+  **Setting:** `Username`  
+  **Default:** *(empty)*
+
+  Stores your fluXis account username, populated automatically on successful login.
+</Accordion>
+
+<Accordion title="Token">
+  **Setting:** `Token`  
+  **Default:** *(empty)*
+
+  Stores your authentication token for the fluXis online service. This token is used to authorize all online interactions including score submission and profile updates.
+</Accordion>
+
+<Accordion title="Server URL">
+  **Setting:** `ServerUrl`  
+  **Default:** `https://fluxis.flux.moe/api`
+
+  The base URL of the fluXis API server. This should only be changed if you are running a self-hosted or development instance of the fluXis backend.
+</Accordion>

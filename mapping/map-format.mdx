@@ -1,0 +1,232 @@
+---
+title: "The fluXis .fsc Map File Format: Complete Reference"
+sidebarTitle: "Map Format"
+description: "fluXis maps are JSON files containing metadata, hit objects, timing points, and scroll velocities. Learn the top-level .fsc schema and file references."
+---
+
+Every fluXis map is stored as a UTF-8 encoded JSON file with the `.fsc` extension. The file sits inside a **mapset folder** alongside its audio, background image, cover art, and any optional video or effect files. When fluXis loads a map it deserialises this file into a `MapInfo` object, which acts as the single source of truth for everything the gameplay engine needs — from song metadata down to individual hit objects. Understanding the top-level structure is the first step to hand-crafting or programmatically generating maps.
+
+<Note>
+  The `.fsc` extension stands for **fluXis Chart**. All file paths stored inside the JSON (audio, background, etc.) are **relative to the mapset folder**, not absolute paths on disk.
+</Note>
+
+## Minimal example
+
+The JSON snippet below is the smallest valid `.fsc` file. Every required array must be present, and at least one timing point and one hit object are mandatory.
+
+```json
+{
+  "AudioFile": "audio.mp3",
+  "BackgroundFile": "bg.jpg",
+  "CoverFile": "cover.jpg",
+  "VideoFile": "",
+  "EffectFile": "",
+  "StoryboardFile": "",
+  "metadata": {
+    "title": "Example Song",
+    "artist": "Example Artist",
+    "mapper": "YourName",
+    "difficulty": "Normal",
+    "source": "",
+    "tags": "",
+    "previewtime": 15000
+  },
+  "colors": {
+    "accent": "#523fbb"
+  },
+  "HitObjects": [
+    { "time": 1000, "lane": 1, "hitsound": "normal", "type": 0 }
+  ],
+  "TimingPoints": [
+    { "time": 0, "bpm": 180, "signature": 4 }
+  ],
+  "ScrollVelocities": [],
+  "HitSoundFades": [],
+  "AccuracyDifficulty": 8,
+  "HealthDifficulty": 8,
+  "dual": 0,
+  "extra-playfields": 0
+}
+```
+
+## Top-level properties
+
+### File references
+
+<ParamField body="AudioFile" type="string" required>
+  Filename of the audio track relative to the mapset folder (e.g. `"audio.mp3"`). fluXis supports MP3, OGG, and FLAC. An empty string means no audio is loaded.
+</ParamField>
+
+<ParamField body="BackgroundFile" type="string" required>
+  Filename of the background image shown during gameplay (e.g. `"bg.jpg"`). Common formats are JPG and PNG. An empty string disables the background.
+</ParamField>
+
+<ParamField body="CoverFile" type="string">
+  Filename of the cover art displayed in song selection and result screens. Recommended square dimensions (e.g. 500×500 px). Defaults to an empty string when omitted.
+</ParamField>
+
+<ParamField body="VideoFile" type="string">
+  Filename of an optional background video (e.g. `"video.mp4"`). The video plays behind the playfield during gameplay. Leave empty to disable.
+</ParamField>
+
+<ParamField body="EffectFile" type="string">
+  Filename of the **map events** JSON file (e.g. `"effects.fse"`). This is a separate file that holds all visual event lists (flashes, shaders, playfield transforms, etc.). See the [Events](/mapping/events) page for the full schema.
+</ParamField>
+
+<ParamField body="StoryboardFile" type="string">
+  Filename of the storyboard JSON file. Storyboards are independent of the effect file and drive more complex scripted visual overlays.
+</ParamField>
+
+---
+
+### Metadata object
+
+<ParamField body="metadata" type="object" required>
+  An object containing all human-readable information about the map. Serialised with the JSON key `metadata`.
+
+  <Expandable title="metadata fields">
+    <ParamField body="title" type="string" required>
+      The full song title (e.g. `"Mystic Garden"`). Displayed in song selection.
+    </ParamField>
+    <ParamField body="title-rm" type="string">
+      Romanized version of the title for non-Latin scripts (e.g. Latin reading of a Japanese title).
+    </ParamField>
+    <ParamField body="artist" type="string" required>
+      Name of the musical artist or composer.
+    </ParamField>
+    <ParamField body="artist-rm" type="string">
+      Romanized version of the artist name.
+    </ParamField>
+    <ParamField body="mapper" type="string" required>
+      Username of the person who created this difficulty.
+    </ParamField>
+    <ParamField body="difficulty" type="string" required>
+      Difficulty label shown in song selection (e.g. `"Hard"`, `"Insane"`). Free-form text.
+    </ParamField>
+    <ParamField body="source" type="string">
+      Where the audio originates — game soundtrack, album name, etc.
+    </ParamField>
+    <ParamField body="bg-source" type="string">
+      Attribution or source URL for the background image.
+    </ParamField>
+    <ParamField body="cover-source" type="string">
+      Attribution or source URL for the cover art.
+    </ParamField>
+    <ParamField body="tags" type="string">
+      Space-separated search tags that improve map discoverability online.
+    </ParamField>
+    <ParamField body="previewtime" type="integer">
+      Time in milliseconds at which the song preview begins in song selection. Defaults to `0`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+---
+
+### Colors object
+
+<ParamField body="colors" type="object">
+  Optional per-map colour overrides for lane note colours. All values are hex strings (`"#RRGGBB"` or `"#RRGGBBAA"`). Serialised with the JSON key `colors`.
+
+  <Expandable title="colors fields">
+    <ParamField body="accent" type="string">
+      Primary accent colour used for UI highlights and the judgement line glow. Falls back to the player's skin highlight when empty.
+    </ParamField>
+    <ParamField body="primary" type="string">
+      Colour applied to the "primary" lane group (outer lanes). Transparent when empty, meaning the skin default is used.
+    </ParamField>
+    <ParamField body="secondary" type="string">
+      Colour applied to the "secondary" lane group (inner lanes).
+    </ParamField>
+    <ParamField body="middle" type="string">
+      Colour applied to the centre lane in odd-keymode layouts.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+---
+
+### Game data arrays
+
+<ParamField body="HitObjects" type="HitObject[]" required>
+  Ordered list of all notes, long notes, tick notes, and landmines. The engine sorts this array by time on load. Must contain at least one entry for the map to pass validation. See [Hit Objects](/mapping/hit-objects) for the full schema.
+</ParamField>
+
+<ParamField body="TimingPoints" type="TimingPoint[]" required>
+  List of BPM and time-signature change markers. At least one timing point starting at or before the first hit object is required. See [Timing](/mapping/timing) for the full schema.
+</ParamField>
+
+<ParamField body="ScrollVelocities" type="ScrollVelocity[]">
+  List of scroll-velocity multipliers that speed up or slow down note travel independently of BPM. Can be empty. See [Timing](/mapping/timing) for details.
+</ParamField>
+
+<ParamField body="HitSoundFades" type="HitSoundFade[]">
+  List of hit-sound volume automation entries. Each entry fades a named sound channel to a target volume over a given duration. Can be empty. See [Timing](/mapping/timing) for the full schema.
+</ParamField>
+
+---
+
+### Difficulty settings
+
+<ParamField body="AccuracyDifficulty" type="float" default="8">
+  Controls the hit-window sizes. Higher values shrink the windows, demanding tighter timing. Valid range is `0`–`10`.
+</ParamField>
+
+<ParamField body="HealthDifficulty" type="float" default="8">
+  Controls how quickly health drains on misses and recovers on hits. Higher values are more punishing. Valid range is `0`–`10`.
+</ParamField>
+
+---
+
+### Advanced options
+
+<ParamField body="dual" type="integer (DualMode)" default="0">
+  Enables dual-playfield mode. Serialised as the JSON key `dual`.
+
+  | Value | Name | Description |
+  |-------|------|-------------|
+  | `0` | `Disabled` | Standard single playfield |
+  | `1` | `Mirrored` | Two playfields side-by-side, both playing the same notes mirrored |
+  | `2` | `Separate` | Two independent playfields, each with their own lane layout and hit objects |
+</ParamField>
+
+<ParamField body="extra-playfields" type="integer" default="0">
+  Number of **additional** decorative playfields to render (0–9). These are visual layers without interactive hit objects, used for storyboard-style effects. Serialised as the JSON key `extra-playfields`.
+</ParamField>
+
+<ParamField body="ls-v2" type="boolean" default="false">
+  When `true`, the improved v2 lane-switch visibility algorithm is used for `LaneSwitchEvent`. Maps created in the modern editor always set this flag.
+</ParamField>
+
+<ParamField body="force-169" type="boolean" default="false">
+  Forces a 16:9 aspect ratio viewport during gameplay regardless of the player's screen resolution.
+</ParamField>
+
+<ParamField body="visualization-enabled" type="boolean" default="false">
+  Enables the audio-reactive background visualisation layer during gameplay.
+</ParamField>
+
+<ParamField body="editor-time" type="integer">
+  Stores the last cursor position in the editor (milliseconds) so the mapper can resume where they left off. Not used during gameplay.
+</ParamField>
+
+---
+
+## File layout inside a mapset
+
+A typical mapset folder looks like this:
+
+```
+<mapset-id>/
+├── song.mp3          ← AudioFile
+├── background.jpg    ← BackgroundFile
+├── cover.jpg         ← CoverFile
+├── video.mp4         ← VideoFile  (optional)
+├── easy.fsc          ← one .fsc per difficulty
+├── hard.fsc
+└── hard.fse          ← EffectFile for hard.fsc  (optional)
+```
+
+<Tip>
+  Each difficulty is a separate `.fsc` file inside the same mapset folder. They all share the same audio and background files, but each can reference its own `EffectFile` and `StoryboardFile`.
+</Tip>

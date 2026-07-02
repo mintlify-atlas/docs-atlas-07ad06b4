@@ -1,0 +1,116 @@
+---
+title: "Install fluXis on Windows, macOS, or Linux"
+sidebarTitle: "Installation"
+description: "Download fluXis from Steam for one-click install, or grab the latest GitHub release. Covers Windows, macOS, and Linux desktop platforms."
+---
+
+Getting fluXis running on your machine is straightforward. The easiest path is through Steam, which handles installation, automatic updates, and library management in one place. If you prefer to manage the game manually — or if you are on a system without Steam — you can download a pre-built release archive directly from GitHub. Both methods give you the same game binary; the only difference is how updates are delivered.
+
+## System Requirements
+
+Before installing, make sure your machine meets the minimum requirements. fluXis is built on osu!framework, which targets modern desktop hardware and relies on OpenGL for rendering.
+
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| **OS** | Windows 10, macOS 12, Ubuntu 20.04 | Latest stable release |
+| **CPU** | Dual-core 2 GHz | Quad-core 3 GHz |
+| **RAM** | 4 GB | 8 GB |
+| **GPU** | OpenGL 3.3 compatible | Dedicated GPU with 2 GB VRAM |
+| **Storage** | 500 MB (game) + map library | SSD recommended |
+| **Runtime** | No extra runtime needed (Steam / standalone builds are self-contained) | — |
+
+<Note>
+  The standalone GitHub release bundles the .NET 8 runtime, so you do **not**
+  need to install the .NET SDK separately just to play. The SDK is only required
+  if you intend to [build from source](/building-from-source).
+</Note>
+
+## Method 1 — Steam (Recommended)
+
+Steam is the primary distribution channel for fluXis. It provides one-click installation, automatic delta updates, and cloud save support.
+
+<Steps>
+  <Step title="Open the fluXis Steam page">
+    Visit the fluXis store page at
+    [https://store.steampowered.com/app/3440100/fluXis/](https://store.steampowered.com/app/3440100/fluXis/).
+    You will need a free Steam account. If you do not have one yet, click
+    **Login** on the Steam website and follow the account-creation flow.
+  </Step>
+  <Step title="Click Play Game / Install">
+    On the store page, click the green **Play Game** button (or **Install** if
+    you are viewing it inside the Steam client). Steam will prompt you to choose
+    an installation directory and begin downloading the game.
+  </Step>
+  <Step title="Wait for the download to complete">
+    Download size varies by version but is typically under 200 MB for the base
+    game. Your existing map library and skin files are stored separately in your
+    user data folder and are not affected by game updates.
+  </Step>
+  <Step title="Launch fluXis">
+    Once installation is complete, click **Play** in your Steam library. On
+    first launch fluXis will perform a brief setup — choosing your data
+    directory and configuring audio offset — before dropping you into the main
+    menu.
+  </Step>
+</Steps>
+
+<Tip>
+  Enable **Steam Cloud** in the game's properties to back up your scores,
+  settings, and keybindings. This is especially useful if you play on multiple
+  machines.
+</Tip>
+
+## Method 2 — GitHub Releases
+
+If you prefer a standalone installation, every tagged release is published as a downloadable archive on GitHub.
+
+<Steps>
+  <Step title="Go to the Releases page">
+    Navigate to
+    [https://github.com/InventiveRhythm/fluXis/releases](https://github.com/InventiveRhythm/fluXis/releases).
+    The latest stable release is always listed at the top of the page.
+  </Step>
+  <Step title="Download the archive for your platform">
+    Under **Assets**, download the archive that matches your operating system:
+
+    | File pattern | Platform |
+    |---|---|
+    | `fluXis-win-x64.zip` | Windows 64-bit |
+    | `fluXis-osx-x64.tar.gz` | macOS (Intel) |
+    | `fluXis-osx-arm64.tar.gz` | macOS (Apple Silicon) |
+    | `fluXis-linux-x64.tar.gz` | Linux 64-bit |
+  </Step>
+  <Step title="Extract the archive">
+    Extract the downloaded archive to a folder of your choice. On Windows you
+    can right-click and select **Extract All**. On macOS and Linux, use:
+
+    ```bash
+    tar -xzf fluXis-linux-x64.tar.gz -C ~/Games/fluXis
+    ```
+  </Step>
+  <Step title="Run the executable">
+    Inside the extracted folder, launch the game:
+
+    - **Windows** — double-click `fluXis.Desktop.exe`
+    - **macOS** — open `fluXis.Desktop.app` (you may need to allow it under
+      *System Settings → Privacy & Security* on first run)
+    - **Linux** — run `./fluXis.Desktop` from a terminal, or create a
+      `.desktop` shortcut
+  </Step>
+  <Step title="Update manually when new releases drop">
+    GitHub releases do not auto-update. Check the releases page periodically
+    and repeat the download-and-extract process to update. Your data folder
+    (stored separately from the game binary) is preserved between updates.
+  </Step>
+</Steps>
+
+<Warning>
+  On **Linux**, ensure your graphics drivers support **OpenGL 3.3** or later.
+  Proprietary NVIDIA drivers and Mesa 22+ for AMD/Intel both satisfy this
+  requirement. If the game fails to launch, check the terminal output for an
+  OpenGL version error.
+</Warning>
+
+## Importing Maps from Other Games
+
+After installing fluXis you can immediately populate your library by importing maps from osu!, Quaver, and Stepmania. Go to **Settings → Imports** inside the game and point fluXis at the relevant game's song folder. fluXis will convert and index the maps automatically so they appear in your song select.

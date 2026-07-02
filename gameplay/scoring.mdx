@@ -1,0 +1,125 @@
+---
+title: "Scoring, Judgements, and Ranks Explained in fluXis"
+sidebarTitle: "Scoring"
+description: "fluXis grades every note across six tiers from Flawless to Miss. Timing windows scale with map difficulty. Understand accuracy, combo, score, and rank."
+---
+
+Every note you hit — or miss — in fluXis is evaluated and assigned a **judgement** that reflects how closely your keypress aligned with the note's ideal timing. There are six judgement tiers, ranging from the perfect Flawless down to a complete Miss. These judgements feed directly into your accuracy percentage, which in turn determines your score, your letter rank, and your performance rating. Understanding how each tier is weighted, and what timing windows you are working within, is key to pushing your scores higher.
+
+## Judgement Tiers
+
+fluXis defines its six judgements in the `Judgement` enum, ordered from worst to best: `Miss`, `Okay`, `Alright`, `Great`, `Perfect`, `Flawless`. The table below shows each tier, its timing window at **difficulty 5 (mid)**, and how it is weighted in the accuracy formula.
+
+| Judgement | Timing Window (mid, ±ms) | Accuracy Weight |
+|-----------|--------------------------|-----------------|
+| **Flawless** | ±19 ms | 1.00 (full credit) |
+| **Perfect**  | ±49 ms | 0.98 |
+| **Great**    | ±82 ms | 0.65 |
+| **Alright**  | ±112 ms | 0.25 |
+| **Okay**     | ±136 ms | 0.10 |
+| **Miss**     | > ±173 ms | 0.00 (no credit) |
+
+<Note>
+  These windows are for a map with difficulty **5** (the mid-point of the 0–10 scale). Easier maps widen the windows and harder maps tighten them — see the section below.
+</Note>
+
+### How Timing Windows Scale with Difficulty
+
+Each timing window is calculated with three anchor values — **min**, **mid**, and **max** — that correspond to difficulty 0, 5, and 10 respectively. The `MapUtils.GetDifficulty()` function interpolates linearly between these anchors. The formula applied is:
+
+- If difficulty > 5: `mid + (max − mid) × ((difficulty − 5) / 5)`
+- If difficulty < 5: `mid + (mid − min) × ((difficulty − 5) / 5)`
+- If difficulty = 5: `mid`
+
+The final window is then divided by the current **rate multiplier** (if a Rate mod is active) — faster rates tighten the effective window, making timing harder.
+
+| Judgement | Difficulty 0 (min) | Difficulty 5 (mid) | Difficulty 10 (max) |
+|-----------|--------------------|--------------------|---------------------|
+| Flawless  | ±22 ms             | ±19 ms             | ±13 ms              |
+| Perfect   | ±64 ms             | ±49 ms             | ±34 ms              |
+| Great     | ±97 ms             | ±82 ms             | ±67 ms              |
+| Alright   | ±127 ms            | ±112 ms            | ±97 ms              |
+| Okay      | ±151 ms            | ±136 ms            | ±121 ms             |
+| Miss      | ±188 ms            | ±173 ms            | ±158 ms             |
+
+<Tip>
+  The Miss row represents the outer boundary of the hittable window. Any press beyond that window — or no press at all — is automatically scored as a Miss, regardless of direction.
+</Tip>
+
+## Accuracy Formula
+
+Accuracy is calculated as the ratio of **rated notes** to **total notes**, expressed as a percentage:
+
+```
+Accuracy = (ratedNotes / totalNotes) × 100
+```
+
+Where `ratedNotes` is the weighted sum of all judgement results:
+
+```
+ratedNotes = Flawless×1.00 + Perfect×0.98 + Great×0.65
+           + Alright×0.25 + Okay×0.10 + Miss×0.00
+```
+
+A perfect play — every note Flawless — yields **100.00% accuracy**. A full-combo play with a mix of Perfect and Flawless notes will sit just below 100%.
+
+### Full Combo and Full Flawless
+
+| Achievement | Condition |
+|-------------|-----------|
+| **Full Combo (FC)** | Current combo equals total note count — no combo breaks at all. |
+| **Full Flawless (FF)** | Every single note is Flawless *and* zero Misses — the absolute peak performance. |
+
+## Score Calculation
+
+The raw score is calculated out of a base of **1,000,000 points**, scaled by any active mod multipliers. It is split into two components:
+
+```
+maxScore    = 1,000,000 × scoreMultiplier
+accBased    = (ratedNotes / maxCombo) × (maxScore × 0.90)
+comboBased  = (maxCombo / totalNotes) × (maxScore × 0.10)
+score       = accBased + comboBased
+```
+
+- **90%** of the maximum score comes from accuracy (weighted hit rate).
+- **10%** comes from your **maximum combo** achieved during the play.
+- The `scoreMultiplier` is the product of all active mod multipliers (e.g., Hard mod adds ×1.04).
+
+<Note>
+  Mod multipliers stack additively around 1.0: `scoreMultiplier = 1 + Σ(mod.ScoreMultiplier − 1)`. So Hard (1.04) plus Mirror (1.00) gives 1.04, while No Fail (0.50) alone gives 0.50.
+</Note>
+
+## Letter Ranks
+
+After a play is complete, a letter rank is assigned based on final accuracy:
+
+| Rank | Accuracy Threshold |
+|------|-------------------|
+| **X**  | 100.00% — Full Flawless |
+| **SS** | ≥ 99.00% |
+| **S**  | ≥ 98.00% |
+| **AA** | ≥ 95.00% |
+| **A**  | ≥ 90.00% |
+| **B**  | ≥ 80.00% |
+| **C**  | ≥ 70.00% |
+| **D**  | < 70.00% |
+
+<Tip>
+  Achieving rank **X** requires every note to be judged Flawless — a 100.00% accuracy play. Even a single Perfect judgement will drop you to SS.
+</Tip>
+
+## Performance Rating
+
+In addition to the raw score, fluXis calculates a **Performance Rating (PR)** that reflects how difficult the achievement was. PR takes the map's star rating, your accuracy, the total note count, the number of misses, and any active mods into account.
+
+The base curve scales with map rating, and then several multipliers are applied:
+
+- **Accuracy**: `max(0, 5 × (accuracy / 100) − 4)` — accuracy below 80% gives zero PR.
+- **Length bonus**: `1 + 0.1 × min(1, ratedNotes / 2500)` — longer maps grant a small bonus, capped at +10%.
+- **Miss penalty**: `0.99^misses` — each Miss reduces PR by roughly 1%.
+- **Rate mod**: Slower rates are punished cubically; faster rates are rewarded linearly (`1.5×rate − 0.5`).
+- **Mod adjustments**: Easy ×0.80, Hard ×1.05, No Fail ×0.40, No SV ×0.60, No LN ×0.60, No Events ×0.40, No Mines ×0.60.
+
+<Warning>
+  Performance Rating is only calculated for **rankable** plays. Mods such as AutoPlay and Paused disable PR submission entirely.
+</Warning>

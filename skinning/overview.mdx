@@ -1,0 +1,184 @@
+---
+title: "Custom Skin Creation and Structure Guide for fluXis"
+sidebarTitle: "Overview"
+description: "A fluXis skin is a folder containing a skin.json config file and image/audio assets that replace the default game visuals and sounds for every key mode."
+---
+
+Skins in fluXis let you replace almost every visual and audio element of the gameplay experience — from note textures and receptor sprites to hit sounds, judgement animations, and results screen rank icons. Each skin lives in its own named folder inside the game's `skins` directory, and a single `skin.json` file at the root of that folder drives all configuration. When fluXis loads a skin it reads the JSON, resolves every asset path relative to the skin folder, and falls back transparently to the built-in **Default** skin for any file that is missing.
+
+## How the skin system works
+
+fluXis uses a layered resolution strategy managed by the `SkinManager` component. At startup the manager scans the `skins` storage directory, builds a list of available skins, and exposes two built-in options that cannot be deleted:
+
+<CardGroup cols={2}>
+  <Card title="Default" icon="paintbrush">
+    The built-in bar-style skin shipped with fluXis. Lane colors come from the theme palette and cannot be overridden via `skin.json`.
+  </Card>
+  <Card title="Default Circle" icon="circle">
+    A second built-in skin with circular note heads. Like **Default**, it is always available and ignores custom asset files.
+  </Card>
+</CardGroup>
+
+When a custom skin is active, every `ISkin` method first checks the custom skin's assets. If a file is absent or returns `null`, the call falls back to the **Default** skin automatically — so you only need to include the assets you actually want to change.
+
+## Skin storage location
+
+All custom skins are stored in the `skins` sub-directory of the fluXis data folder. The exact path depends on your operating system:
+
+| Platform | Path |
+|----------|------|
+| Windows  | `%APPDATA%\fluXis\skins\` |
+| macOS    | `~/Library/Application Support/fluXis/skins/` |
+| Linux    | `~/.local/share/fluXis/skins/` |
+
+Each skin occupies one folder inside `skins/`. The folder name is the skin's internal identifier — it becomes the value stored in the `SkinName` setting when you select that skin in-game.
+
+<Note>
+  Skins published to the Steam Workshop are stored in the Workshop's own content directory and are referenced by a `steam/<itemId>` identifier. You cannot manually edit Workshop skin files from within the game's skins folder.
+</Note>
+
+## Skin folder structure
+
+A typical custom skin folder looks like this:
+
+```
+MySkin/
+├── skin.json                          # Required — configuration file
+├── icon.png                           # Optional — thumbnail shown in skin selector
+├── HitObjects/
+│   ├── Note/
+│   │   ├── 4k-1.png                   # Note for lane 1 in 4-key mode
+│   │   ├── 4k-2.png
+│   │   └── ...
+│   ├── LongNoteStart/
+│   ├── LongNoteBody/
+│   ├── LongNoteEnd/
+│   ├── Tick/
+│   └── Landmine/
+├── Receptor/
+│   ├── 4k-1-up.png                    # Receptor idle state
+│   ├── 4k-1-down.png                  # Receptor pressed state
+│   └── ...
+├── Stage/
+│   ├── background.png
+│   ├── hitline.png
+│   ├── border-left.png
+│   ├── border-right.png
+│   └── ...
+├── Lighting/
+│   └── column-lighting.png
+├── Judgement/
+│   ├── flawless.png
+│   ├── perfect.png
+│   ├── great.png
+│   ├── alright.png
+│   ├── okay.png
+│   └── miss.png
+├── Results/
+│   ├── rank-x.png
+│   ├── rank-s.png
+│   └── ...
+├── Samples/
+│   ├── Gameplay/
+│   │   ├── hit.wav
+│   │   ├── miss.wav
+│   │   ├── fail.wav
+│   │   ├── restart.wav
+│   │   ├── full-combo.wav
+│   │   └── all-flawless.wav
+│   └── UI/
+│       ├── click.wav
+│       ├── hover.wav
+│       └── ...
+├── ComboBurst/
+│   ├── 0.png
+│   └── 0.wav
+└── UserInterface/
+    └── background.png
+```
+
+<Tip>
+  You do not need every file. Any asset that is absent causes fluXis to silently fall back to the Default skin, so you can ship a skin that only replaces hit sounds, for example, and everything else will look and feel stock.
+</Tip>
+
+Asset paths inside the folder can be remapped using the `overrides` dictionary in `skin.json`. For instance, you can point `HitObjects/Note/4k-1` at a completely different file name without renaming the actual file.
+
+## How a skin is selected
+
+The active skin is controlled by the `SkinName` setting stored in the fluXis configuration. Its value is the folder name of the skin (e.g. `MySkin`), or the special values `Default` and `Default Circle` for the two built-ins. You change this from the **Settings → Appearance** panel in-game.
+
+When `SkinName` changes, `SkinManager` disposes the previous custom skin, instantiates a `CustomSkin` from the new folder, and fires its `SkinChanged` callback so every listening game component reloads its drawables.
+
+Skins can also be installed by dragging a `.fsk` file onto the game window. A `.fsk` file is simply a ZIP archive renamed with the `.fsk` extension. fluXis will extract it into the `skins` directory, reload the skin list, and switch to the newly installed skin automatically.
+
+## Creating a new skin
+
+<Steps>
+  <Step title="Create the skin folder">
+    Navigate to the `skins` directory for your platform (see the table above) and create a new folder. The folder name will be the skin's identifier, so choose something short and unique — for example `NeonPulse`.
+  </Step>
+
+  <Step title="Write a skin.json">
+    Inside the new folder, create a `skin.json` file. At minimum it needs an `info` block:
+
+    ```json
+    {
+      "info": {
+        "name": "Neon Pulse",
+        "creator": "YourName",
+        "accent": "#FF4FC8"
+      }
+    }
+    ```
+
+    You can leave out every other section and fluXis will use built-in defaults for column widths, judgement colors, and snap colors. Add per-keymode layout blocks or color overrides as you need them. The full field reference is on the [skin.json reference page](/skinning/skin-json).
+  </Step>
+
+  <Step title="Add an icon">
+    Drop a square `icon.png` into the root of the skin folder. This image appears in the in-game skin selector next to the skin's name. Any size works, but 256×256 pixels is recommended.
+  </Step>
+
+  <Step title="Create your assets">
+    Add image and audio files following the folder structure shown above. Name note textures using the pattern `{keyCount}k-{lane}.png` — for example `4k-1.png` is the note texture for lane 1 in 4-key mode. Receptor textures follow the same convention with an additional `-up` or `-down` suffix.
+
+    <Tip>
+      Start with hit objects and receptors first — they are the most visible elements. You can always add sounds, stage decorations, and judgement textures later.
+    </Tip>
+  </Step>
+
+  <Step title="Configure tinting and layout">
+    Open `skin.json` and add a keymode block for each key count you want to customize. Use `tint_notes: true` to have fluXis colorize your note textures with the lane color from the `colors` array. See the [Keymode Config page](/skinning/keymode-config) for a full breakdown of every layout field.
+  </Step>
+
+  <Step title="Load the skin in-game">
+    Open fluXis, go to **Settings → Appearance**, and select your skin from the skin selector. If the skin is not listed, check that the folder contains a valid `skin.json` and that the file is well-formed JSON. Any parse errors are written to the runtime log.
+  </Step>
+
+  <Step title="Export and share">
+    Once you are happy with your skin, you can export it as a `.fsk` file from the skin selector panel inside the game. The export compresses all files in your skin folder into a single archive that other players can drag and drop onto the game window to install.
+  </Step>
+</Steps>
+
+## SkinManager overview
+
+`SkinManager` is the central coordinator for all skinning in fluXis. It implements `ISkin` itself by delegating every method call to the currently active skin, falling back to `DefaultSkin` when the custom skin returns `null`. Key responsibilities include:
+
+- **Building the skin list** — `ReloadSkinList()` scans the `skins` storage directory plus any subscribed Steam Workshop items and populates `AvailableSkins`.
+- **Hot-swapping skins** — A `Bindable<string>` bound to the `SkinName` config setting reloads the active skin whenever the value changes.
+- **Drag-and-drop install** — `SkinManager` registers itself as a `IDragDropHandler` for `.fsk` files; dropping one extracts it and switches to the new skin automatically.
+- **Saving edits** — `UpdateAndSave(SkinJson)` serialises an updated `SkinJson` back to disk and hot-reloads the skin in one step (disabled for Steam Workshop skins).
+
+<Note>
+  The `CanChangeSkin` flag temporarily locks skin switching — for example, during gameplay — so a song you started with one skin finishes with the same one.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="skin.json Reference" icon="file-code" href="/skinning/skin-json">
+    Full field-by-field reference for every top-level key in `skin.json`, including info, judgement colors, snap colors, and asset overrides.
+  </Card>
+  <Card title="Keymode Config" icon="sliders" href="/skinning/keymode-config">
+    Every property of the per-keymode layout block: column width, hit position, receptor offset, tinting, and the lane color array.
+  </Card>
+</CardGroup>

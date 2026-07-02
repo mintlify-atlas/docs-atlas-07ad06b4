@@ -1,0 +1,364 @@
+---
+title: "Storyboard Lua API Complete Reference for fluXis Maps"
+sidebarTitle: "Storyboard API"
+description: "The storyboard Lua API provides Add(), element constructors (Box, Sprite, Text, Circle), and global state objects for screen size, metadata, and settings."
+---
+
+The storyboard Lua API is the set of globals injected by `StoryboardScriptRunner` on top of the shared base. It gives your `process()` function everything needed to build a complete visual layer: constructors for every element type, a function to commit elements to the storyboard, read-only global objects describing the screen, the current map, and the player's settings, and a rich animation system on every element.
+
+## Entry Point — the `process()` Function
+
+Every storyboard script must define a top-level function called `process`. The engine calls it once per Script-type storyboard element and passes that element as the `parent` argument. All element creation and `Add()` calls should happen inside this function or in functions it calls.
+
+```lua
+SetVersion(2)
+
+function process(parent)
+  -- build your elements here
+end
+```
+
+<Note>
+  The `parent` argument is a `StoryboardElement` userdata that represents the Script element itself. You can read custom parameters from it with `parent:param("myKey", defaultValue)`.
+</Note>
+
+---
+
+## Add(element)
+
+Commits a constructed element to the storyboard so it is rendered during gameplay. Call this once per element after you have finished configuring all its fields and animations.
+
+<ParamField path="element" type="StoryboardElement" required>
+  Any element object returned by one of the constructor functions below.
+</ParamField>
+
+```lua
+local spr = StoryboardSprite()
+spr.texture = "bg_overlay.png"
+spr.time    = 0
+spr.endtime = 30000
+Add(spr)
+```
+
+<Warning>
+  Elements are not rendered until `Add()` is called. Configuring an element and forgetting `Add()` is the most common scripting mistake.
+</Warning>
+
+---
+
+## Element Constructors
+
+Each constructor returns a new element object pre-populated with default values. Set fields on the returned object before passing it to `Add()`.
+
+<CardGroup cols={2}>
+  <Card title="StoryboardBox()" icon="square">
+    A solid filled rectangle. Supports `Width`, `Height`, `Color`, and blend options. Animatable dimensions: `Width`, `Height`.
+  </Card>
+  <Card title="StoryboardOutlineBox()" icon="border-style">
+    A hollow rectangle with a configurable border thickness. Adds the `border` field on top of the base element fields. Animatable: `Width`, `Height`, `Border`.
+  </Card>
+  <Card title="StoryboardSprite()" icon="image">
+    A textured sprite loaded from the map folder. Requires the `texture` field to be set to a file path relative to the map directory.
+  </Card>
+  <Card title="StoryboardText()" icon="font">
+    A rendered text label. Set `text` for content and `size` for the font size in pixels.
+  </Card>
+  <Card title="StoryboardCircle()" icon="circle">
+    A solid filled circle/ellipse. Supports `Width` and `Height` for radius control. Animatable: `Width`, `Height`. Rotation is disabled by default.
+  </Card>
+  <Card title="StoryboardOutlineCircle()" icon="circle-dot">
+    A hollow circle with a configurable `border` thickness. Animatable: `Width`, `Height`, `Border`, `Rotate`.
+  </Card>
+  <Card title="StoryboardSkinSprite(str)" icon="palette">
+    Renders a sprite sourced from the active player skin. The `str` argument must be one of the `SkinSprite` enum values (see table below).
+  </Card>
+</CardGroup>
+
+### StoryboardSkinSprite — `SkinSprite` Values
+
+| Value | Description |
+|---|---|
+| `"HitObject"` | Standard hit note body |
+| `"LongNoteStart"` | Head of a long note |
+| `"LongNoteBody"` | Repeating body of a long note |
+| `"LongNoteEnd"` | Tail of a long note |
+| `"TickNote"` | Full-size tick note |
+| `"TickNoteSmall"` | Small tick note variant |
+| `"Receptor"` | The receptor / judgement line column |
+| `"StageBackground"` | Main stage background panel |
+| `"StageBackgroundTop"` | Top cap of the stage background |
+| `"StageBackgroundBottom"` | Bottom cap of the stage background |
+| `"StageLeftTop"` | Top of the left stage border |
+| `"StageLeft"` | Middle of the left stage border |
+| `"StageLeftBottom"` | Bottom of the left stage border |
+| `"StageRightTop"` | Top of the right stage border |
+| `"StageRight"` | Middle of the right stage border |
+| `"StageRightBottom"` | Bottom of the right stage border |
+
+`StoryboardSkinSprite` also exposes three extra fields:
+
+<ParamField path="sprite" type="number">
+  Numeric index of the skin sprite (set automatically from the `str` constructor argument).
+</ParamField>
+<ParamField path="lane" type="number">
+  The lane index the sprite should be visually tied to.
+</ParamField>
+<ParamField path="keycount" type="number">
+  The key count used to look up lane-specific skin metrics.
+</ParamField>
+
+---
+
+## Base Element Fields (`StoryboardElement`)
+
+Every element type inherits these fields. All numeric fields accept plain Lua numbers.
+
+<ParamField path="layer" type="number" required>
+  Render layer. Use the `Layer()` helper: `Layer("Background")`, `Layer("Foreground")`, or `Layer("Overlay")`. The numeric values are Background=0, Foreground=1, Overlay=2.
+</ParamField>
+
+<ParamField path="time" type="number" required>
+  Absolute map time in milliseconds at which the element appears (spawns).
+</ParamField>
+
+<ParamField path="endtime" type="number" required>
+  Absolute map time in milliseconds at which the element disappears (despawns).
+</ParamField>
+
+<ParamField path="anchor" type="number">
+  Anchor point of the element's container relative to its parent. Use `Anchor("Centre")`, `Anchor("TopLeft")`, etc. See the full anchor table below. Defaults to `TopLeft`.
+</ParamField>
+
+<ParamField path="origin" type="number">
+  Origin point within the element itself — the pivot used for position, rotation, and scale transforms. Same values as `anchor`. Defaults to `TopLeft`.
+</ParamField>
+
+<ParamField path="x" type="number">
+  Horizontal position in pixels. Measured from the anchor point.
+</ParamField>
+
+<ParamField path="y" type="number">
+  Vertical position in pixels. Measured from the anchor point.
+</ParamField>
+
+<ParamField path="z" type="number">
+  Z-index / depth ordering within the same layer. Higher values render on top.
+</ParamField>
+
+<ParamField path="width" type="number">
+  Width of the element in pixels.
+</ParamField>
+
+<ParamField path="height" type="number">
+  Height of the element in pixels.
+</ParamField>
+
+<ParamField path="color" type="number">
+  Tint colour as a packed ARGB hex integer, e.g. `0xFFFFFFFF` for opaque white or `0xFF4488FF` for a solid blue.
+</ParamField>
+
+<ParamField path="blend" type="boolean">
+  When `true`, enables custom blending using `blendMode`.
+</ParamField>
+
+<ParamField path="blendMode" type="number">
+  The blend equation to use when `blend` is `true`. Use `BlendMode("Add")`, `BlendMode("Screen")`, etc.
+</ParamField>
+
+### Anchor / Origin Values
+
+Use the `Anchor(name)` helper to convert a name string to its numeric value.
+
+| Name | Position |
+|---|---|
+| `"TopLeft"` | Top-left corner |
+| `"TopCentre"` | Top edge, centred horizontally |
+| `"TopRight"` | Top-right corner |
+| `"CentreLeft"` | Left edge, centred vertically |
+| `"Centre"` | Dead centre |
+| `"CentreRight"` | Right edge, centred vertically |
+| `"BottomLeft"` | Bottom-left corner |
+| `"BottomCentre"` | Bottom edge, centred horizontally |
+| `"BottomRight"` | Bottom-right corner |
+
+### BlendMode Values
+
+| Name | Behaviour |
+|---|---|
+| `"None"` | No blending |
+| `"Inherit"` | Inherit parent blend mode |
+| `"Mix"` | Standard alpha compositing |
+| `"Difference"` | Absolute difference |
+| `"Add"` | Additive blending (brightens) |
+| `"Subtract"` | Subtractive blending |
+| `"Screen"` | Screen blend |
+| `"Multiply"` | Multiply blend |
+| `"Premultiplied"` | Premultiplied alpha |
+
+---
+
+## Element Methods
+
+### `:animate(type, time, len, startVal, endVal, ease)`
+
+Attaches an animation keyframe to the element. Multiple calls stack to form a full animation timeline.
+
+<ParamField path="type" type="AnimationType" required>
+  What property to animate. See the table below.
+</ParamField>
+
+<ParamField path="time" type="number" required>
+  When this animation starts, in milliseconds. In script version 2+, this is **relative to the element's own `time`** field, not absolute map time.
+</ParamField>
+
+<ParamField path="len" type="number" required>
+  Duration of the animation in milliseconds.
+</ParamField>
+
+<ParamField path="startVal" type="string" required>
+  The starting value encoded as a string. Format depends on `type` — a number for scalar properties, `"r,g,b,a"` for Color.
+</ParamField>
+
+<ParamField path="endVal" type="string" required>
+  The ending value in the same format as `startVal`.
+</ParamField>
+
+<ParamField path="ease" type="Easing" required>
+  The easing curve to apply. Use `Easing("OutQuad")`, `Easing("InOutSine")`, etc. See the full list in the [Global Functions](/scripting/global-functions) reference.
+</ParamField>
+
+### AnimationType Values
+
+| Type | Animated Property |
+|---|---|
+| `"MoveX"` | Horizontal position (`x`) |
+| `"MoveY"` | Vertical position (`y`) |
+| `"Scale"` | Uniform scale |
+| `"ScaleVector"` | Non-uniform scale (x,y vector) |
+| `"Width"` | Element width |
+| `"Height"` | Element height |
+| `"Rotate"` | Rotation in degrees |
+| `"Fade"` | Opacity / alpha |
+| `"Color"` | Tint colour (RGBA) |
+| `"Border"` | Border thickness (outline elements only) |
+
+### `:param(key, fallback)`
+
+Reads a user-defined parameter value from the Script element that owns this script. Falls back to `fallback` if the key is not present.
+
+<ParamField path="key" type="string" required>
+  The parameter key registered with `DefineParameter()`.
+</ParamField>
+
+<ParamField path="fallback" type="any">
+  Value to return when the key is absent.
+</ParamField>
+
+---
+
+## Global Objects
+
+### `screen` — Vector2
+
+A `Vector2` containing the storyboard canvas resolution. Use it to position elements relative to the actual rendered size rather than hard-coding pixel values.
+
+```lua
+local cx = screen.x / 2  -- horizontal centre
+local cy = screen.y / 2  -- vertical centre
+```
+
+### `metadata` — map information
+
+Read-only object exposing the current map's metadata.
+
+<ParamField path="metadata.title" type="string">
+  The non-romanised title of the map.
+</ParamField>
+<ParamField path="metadata.artist" type="string">
+  The non-romanised artist name.
+</ParamField>
+<ParamField path="metadata.mapper" type="string">
+  Username of the mapper.
+</ParamField>
+<ParamField path="metadata.difficulty" type="string">
+  Difficulty name as shown in the game.
+</ParamField>
+<ParamField path="metadata.background" type="string">
+  Relative file path to the map's background image.
+</ParamField>
+<ParamField path="metadata.cover" type="string">
+  Relative file path to the map's cover image.
+</ParamField>
+
+### `settings` — player preferences
+
+<ParamField path="settings.scrollspeed" type="number">
+  The player's current scroll speed setting.
+</ParamField>
+<ParamField path="settings.upscroll" type="boolean">
+  `true` if the player has enabled upscroll (notes travel upward).
+</ParamField>
+
+---
+
+## Full Worked Example
+
+The following script creates a pulsing animated sprite that fades in at the start of the map, stays visible for 20 seconds, and fades out at the end. It also reads a user parameter to optionally flip the image vertically using upscroll preference.
+
+```lua
+SetVersion(2)
+
+function process(parent)
+  local flip = settings.upscroll
+
+  local spr = StoryboardSprite()
+  spr.texture = "banner.png"
+  spr.layer   = Layer("Background")
+  spr.time    = 0
+  spr.endtime = 20000
+  spr.anchor  = Anchor("Centre")
+  spr.origin  = Anchor("Centre")
+  spr.x       = screen.x / 2
+  spr.y       = screen.y / 2
+  spr.width   = screen.x
+  spr.height  = screen.y
+
+  -- fade in over 500ms
+  spr:animate("Fade", 0, 500, "0", "1", Easing("OutQuad"))
+
+  -- subtle scale pulse at 2s
+  spr:animate("Scale", 2000, 300, "1", "1.05", Easing("OutSine"))
+  spr:animate("Scale", 2300, 400, "1.05", "1",  Easing("InSine"))
+
+  -- fade out over 1s before despawn
+  spr:animate("Fade", 19000, 1000, "1", "0", Easing("InQuad"))
+
+  Add(spr)
+
+  -- add a white flash overlay at the start
+  local flash = StoryboardBox()
+  flash.layer   = Layer("Overlay")
+  flash.time    = 0
+  flash.endtime = 600
+  flash.anchor  = Anchor("TopLeft")
+  flash.x       = 0
+  flash.y       = 0
+  flash.width   = screen.x
+  flash.height  = screen.y
+  flash.color   = 0xFFFFFFFF
+  flash.blend   = true
+  flash.blendMode = BlendMode("Add")
+  flash:animate("Fade", 0, 600, "1", "0", Easing("OutExpo"))
+  Add(flash)
+end
+```
+
+---
+
+## Map Event Types
+
+The `map:EventsInRange()` function accepts an `EventType` string to filter which events are returned. The full list of supported event types is:
+
+`"BeatPulse"`, `"ColorFade"`, `"Flash"`, `"LaneSwitch"`, `"LayerFade"`, `"Pulse"`, `"Shader"`, `"Shake"`, `"HitObjectEase"`, `"ScrollMultiplier"`, `"TimeOffset"`, `"PlayfieldMove"`, `"PlayfieldRotate"`, `"PlayfieldScale"`, `"Loop"`, `"CameraMove"`, `"CameraRotate"`, `"CameraScale"`
+
+Each returned event object has at least `time` and `group` fields, plus type-specific fields documented in the `events.lua` library file included with your fluXis installation.

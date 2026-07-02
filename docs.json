@@ -1,72 +1,110 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "fluXis",
+  "theme": "almond",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#523fbb",
+    "light": "#3c3078",
+    "dark": "#23232c"
   },
-  "favicon": "/favicon.svg",
-  "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
+  "favicon": "https://media.brand.dev/95d7353d-99e6-45ce-b6ab-b7b7411d3955.jpg",
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "https://media.brand.dev/281194c2-f4c0-4886-86eb-e747386fb90d.png",
+    "dark": "https://media.brand.dev/281194c2-f4c0-4886-86eb-e747386fb90d.png"
   },
   "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
     "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "type": "github",
+      "href": "https://github.com/InventiveRhythm/fluXis"
     }
-  },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/InventiveRhythm/fluXis"
     }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Getting Started",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "introduction",
+              "installation",
+              "building-from-source"
+            ]
+          },
+          {
+            "group": "Gameplay",
+            "pages": [
+              "gameplay/overview",
+              "gameplay/scoring",
+              "gameplay/mods",
+              "gameplay/settings"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Mapping",
+        "groups": [
+          {
+            "group": "Map Format",
+            "pages": [
+              "mapping/map-format",
+              "mapping/hit-objects",
+              "mapping/timing",
+              "mapping/events"
+            ]
+          },
+          {
+            "group": "Editor",
+            "pages": [
+              "mapping/editor-overview",
+              "mapping/editor-charting",
+              "mapping/editor-design",
+              "mapping/importing"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Customization",
+        "groups": [
+          {
+            "group": "Skinning",
+            "pages": [
+              "skinning/overview",
+              "skinning/skin-json",
+              "skinning/keymode-config"
+            ]
+          },
+          {
+            "group": "Storyboarding & Scripting",
+            "pages": [
+              "scripting/overview",
+              "scripting/storyboard-api",
+              "scripting/global-functions",
+              "scripting/setup"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Contributing",
+            "pages": [
+              "development/contributing",
+              "development/plugins",
+              "development/code-of-conduct"
+            ]
+          }
+        ]
+      }
+    ]
   }
 }

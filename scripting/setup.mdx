@@ -1,0 +1,196 @@
+---
+title: "Set Up Lua IDE and Language Server for fluXis Scripting"
+sidebarTitle: "IDE Setup"
+description: "Configure VS Code or Rider with the sumneko Lua language server and fluXis type definitions for autocomplete and type hints in storyboard scripts."
+---
+
+Writing fluXis storyboard scripts in a plain text editor works, but you will miss out on autocompletion, inline documentation, and type error highlighting. The fluXis installation ships a `scripting/` folder that contains Lua library definition files specifically authored for sumneko's Lua Language Server. Once the language server is pointed at that folder, your editor gains full awareness of every fluXis global — element constructors, `mathf` functions, `AudioAnalyzer` methods, easing names, enum values, and more.
+
+## What the `scripting/` Folder Contains
+
+The `scripting/library/` directory holds a set of `---@meta` Lua files. These files are never executed; they exist solely to teach the language server about fluXis-specific types and globals:
+
+| File | Provides |
+|---|---|
+| `shared.lua` | `SetVersion`, `RandomRange`, `BPMAtTime`, `DefineParameter`, `print` |
+| `storyboard.lua` | Element constructors, `Add()`, `screen`, `metadata`, `settings`, `Layer()`, `Anchor()`, `BlendMode()` |
+| `skin.lua` | `skin:sprratio()`, `skin:colwidth()`, `skin:hitpos()`, `skin:recoffset()`, `skin:recfirst()` |
+| `audio.lua` | `AudioAnalyzer`, `FFTParameters`, `FFTFrame`, `FFTBands` |
+| `math.lua` | `mathf` with all scalar and vector methods |
+| `map.lua` | `map:NotesInRange()`, `map:TimingPointsInRange()`, `map:ScrollVelocitiesInRange()`, `map:EventsInRange()` |
+| `enums.lua` | `Easing`, `HitObjectType`, `AnchorName`, `BlendMode`, `EventType`, `ParameterDefinitionType` |
+| `events.lua` | All event class definitions (`BeatPulseEvent`, `FlashEvent`, `ShaderEvent`, etc.) |
+| `struct.lua` | `Vector2`, `Color4`, `HitObject`, `TimingPoint`, `ScrollVelocity`, `HitSoundFade` |
+
+<Tip>
+  You do **not** need to `require` or `dofile` any of these files in your scripts. They are read by the language server only. Including them in your Lua runtime would cause errors because they use `---@meta` markers that signal "type definitions only".
+</Tip>
+
+## Finding the `scripting/` Path
+
+The `scripting/` folder lives in the root of your fluXis installation directory, alongside the game executable. If you installed via Steam, the default path is:
+
+```
+C:\Program Files (x86)\Steam\steamapps\common\fluXis\scripting
+```
+
+On Linux the path follows your Steam library location, typically:
+
+```
+~/.local/share/Steam/steamapps/common/fluXis/scripting
+```
+
+On macOS:
+
+```
+~/Library/Application Support/Steam/steamapps/common/fluXis/scripting
+```
+
+<Note>
+  Use the full absolute path when configuring the language server. Relative paths may not resolve correctly depending on which folder you open in your editor.
+</Note>
+
+---
+
+## Installing the Language Server
+
+<Tabs>
+  <Tab title="VS Code">
+
+### Step 1 — Install the Extension
+
+<Steps>
+  <Step title="Open VS Code">
+    Launch Visual Studio Code. If you do not have it installed, download it from [code.visualstudio.com](https://code.visualstudio.com).
+  </Step>
+  <Step title="Install the Lua Extension">
+    Open the Extensions panel (`Ctrl+Shift+X`), search for **Lua** by `sumneko`, and click **Install**. The extension ID is `sumneko.lua`.
+
+    Alternatively, install it from the command line:
+    ```bash
+    code --install-extension sumneko.lua
+    ```
+  </Step>
+  <Step title="Open Your Map Folder">
+    Use **File → Open Folder** to open the folder that contains your map's `.fsc` file and Lua scripts. The workspace configuration you create in the next step is scoped to this folder.
+  </Step>
+  <Step title="Create .vscode/settings.json">
+    Inside your map folder, create a `.vscode/` directory if one does not exist, then create `settings.json` inside it with the following content — replacing the path with your actual fluXis installation path:
+
+    <CodeGroup>
+    ```json settings.json (Windows)
+    {
+      "Lua.workspace.library": [
+        "C:\\Program Files (x86)\\Steam\\steamapps\\common\\fluXis\\scripting"
+      ]
+    }
+    ```
+
+    ```json settings.json (Linux)
+    {
+      "Lua.workspace.library": [
+        "/home/youruser/.local/share/Steam/steamapps/common/fluXis/scripting"
+      ]
+    }
+    ```
+
+    ```json settings.json (macOS)
+    {
+      "Lua.workspace.library": [
+        "/Users/youruser/Library/Application Support/Steam/steamapps/common/fluXis/scripting"
+      ]
+    }
+    ```
+    </CodeGroup>
+  </Step>
+  <Step title="Reload the Window">
+    Press `Ctrl+Shift+P`, type **Reload Window**, and press Enter. The Lua Language Server will index the fluXis library files and activate autocomplete.
+  </Step>
+</Steps>
+
+  </Tab>
+  <Tab title="JetBrains Rider">
+
+### Step 1 — Install the Plugin
+
+<Steps>
+  <Step title="Open Rider Settings">
+    Go to **File → Settings** (Windows/Linux) or **Rider → Preferences** (macOS), then navigate to **Plugins**.
+  </Step>
+  <Step title="Install SumnekoLua">
+    Click the **Marketplace** tab, search for **SumnekoLua**, and click **Install**. The plugin page is at [plugins.jetbrains.com/plugin/22315-sumnekolua](https://plugins.jetbrains.com/plugin/22315-sumnekolua).
+
+    Restart Rider when prompted.
+  </Step>
+  <Step title="Configure the Library Path">
+    Open your project, then go to **Settings → Languages & Frameworks → Lua → Workspace**. Add the full path to the fluXis `scripting/` folder in the **Library** list.
+
+    On Windows this looks like:
+    ```
+    C:\Program Files (x86)\Steam\steamapps\common\fluXis\scripting
+    ```
+  </Step>
+  <Step title="Verify Autocomplete">
+    Open any `.lua` file in your map folder. Type `StoryboardB` — you should see `StoryboardBox` appear in the completion list with its full type signature.
+  </Step>
+</Steps>
+
+  </Tab>
+</Tabs>
+
+---
+
+## Verifying the Setup
+
+Once the language server is configured, open (or create) a `.lua` file in your map folder and try typing the following. Autocomplete and type hints should appear at each step:
+
+```lua
+SetVersion(2)   -- hover shows: param v: number
+
+function process(parent)
+  local box = StoryboardBox()
+  -- type "box." and see all StoryboardElement fields listed
+  box.layer   = Layer("Background")
+  box.anchor  = Anchor("Centre")
+  box.origin  = Anchor("Centre")
+  box.time    = 0
+  box.endtime = 5000
+  box.x       = screen.x / 2
+  box.y       = screen.y / 2
+  box.width   = 100
+  box.height  = 100
+  -- type "box:a" and see ":animate()" listed
+  box:animate("Fade", 0, 500, "0", "1", Easing("OutQuad"))
+  Add(box)
+end
+```
+
+<Tip>
+  If autocomplete does not appear, check that `Lua.workspace.library` points to the `scripting/` folder itself (not the `scripting/library/` subfolder). The language server scans recursively, so pointing at `scripting/` is correct.
+</Tip>
+
+---
+
+## Common Issues
+
+<Accordion title="Hover shows 'unknown type' for storyboard globals">
+  Ensure the path in `Lua.workspace.library` uses the correct path separator for your OS (backslashes on Windows, forward slashes on Linux/macOS) and that the path ends with `scripting` not `scripting/library`. Reload the window after making changes.
+</Accordion>
+
+<Accordion title="The extension reports errors on ---@meta files">
+  This is normal and expected. The `---@meta` annotation tells the language server these files are definition-only. They should not appear in your script's directory — they live in the fluXis installation, which the language server reads as a library, not as part of your project.
+</Accordion>
+
+<Accordion title="Autocomplete works for shared globals but not storyboard globals">
+  Make sure VS Code opened your **map folder** as the workspace root, not a parent folder. The `.vscode/settings.json` is folder-scoped. If you opened a parent folder, move the `.vscode/settings.json` to that parent folder or open the correct folder.
+</Accordion>
+
+<Accordion title="SumnekoLua plugin not appearing in Rider marketplace">
+  The plugin requires Rider 2023.1 or later. Ensure your IDE is up to date. You can also install the plugin manually by downloading the `.zip` from the JetBrains plugin repository and using **Install Plugin from Disk** in the Plugins settings panel.
+</Accordion>
+
+---
+
+## Next Steps
+
+With your IDE configured, you are ready to write your first storyboard script. Check the [Storyboard API](/scripting/storyboard-api) page for the full element and animation reference, or the [Global Functions](/scripting/global-functions) page for math utilities, audio analysis, and parameter helpers.

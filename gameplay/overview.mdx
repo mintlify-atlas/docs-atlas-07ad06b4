@@ -1,0 +1,71 @@
+---
+title: "How to Play fluXis: A Complete Core Gameplay Guide"
+sidebarTitle: "Overview"
+description: "Learn core fluXis mechanics: scrolling lanes, normal notes, hold notes, landmines, tick notes, and the full session flow from song select to results."
+---
+
+fluXis is a vertical scrolling rhythm game (VSRG) where notes travel down — or up — a set of parallel lanes toward a stationary judgement line. Your goal is to press the corresponding key at precisely the right moment as each note crosses the line. The tighter your timing, the better your judgement, and the higher your score. Whether you are brand new to rhythm games or an experienced player switching from another title, understanding the fundamental objects and session flow will get you up to speed quickly.
+
+## The Playfield
+
+The playfield is a set of vertical lanes that matches the **key count** of the map you are playing. Common key counts range from 4K to 7K, though fluXis supports other configurations as well. Notes scroll from the far end of the screen toward the judgement line at the bottom (or top, depending on your [scroll direction setting](/gameplay/settings)).
+
+Each lane corresponds to a single keyboard key. When a note reaches the judgement line, press that key. If you are too early, too late, or miss entirely, you receive a lower judgement or a Miss — both of which affect your accuracy and can break your combo.
+
+## Note Types
+
+fluXis features four distinct hit object types, each requiring a slightly different interaction.
+
+<CardGroup cols={2}>
+  <Card title="Normal Note" icon="circle">
+    The standard object. A single note that scrolls down its lane. Press the corresponding key once as it crosses the judgement line. Normal notes are the most common object in any map.
+  </Card>
+  <Card title="Long Note (Hold Note)" icon="arrows-down-up">
+    A note with a body that extends for a set duration. Press and **hold** the key as the head crosses the line, then release when the tail passes. Releasing too early or too late counts against you.
+  </Card>
+  <Card title="Landmine" icon="warning">
+    An obstacle note. **Do not press** the key when a landmine is in its lane — hitting one counts as a penalty. Landmines require you to actively avoid pressing a key, adding a layer of coordination difficulty.
+  </Card>
+  <Card title="Tick Note" icon="timer">
+    A rapid sub-beat note that appears visually offset (using a `visual-lane` position) within its lane. Tick notes typically appear in bursts and require quick, precise tapping to clear cleanly.
+  </Card>
+</CardGroup>
+
+<Note>
+  Internally, note types are represented by the `HitObjectType` enum with values `Normal`, `Tick`, and `Landmine`. Long notes are Normal notes that have a non-zero `holdtime` value rather than a separate type.
+</Note>
+
+## Scroll Speed
+
+Scroll speed controls how fast notes travel toward the judgement line. It does not change the song's tempo or the absolute timing windows — it only affects how far in advance notes appear on screen.
+
+<Tip>
+  The default scroll speed is **3.0** (range: 2.0 – 8.0, step 0.1). Higher values push notes closer together visually, requiring faster reading. Most players find a comfortable range between 2.5 and 5.0. Adjust it in **Settings → Gameplay → Scroll Speed** or on the fly in song select.
+</Tip>
+
+## Gameplay Session Flow
+
+A full gameplay session in fluXis moves through several distinct screens in sequence.
+
+<Steps>
+  <Step title="Song Select">
+    Browse your installed maps, filter by key count, difficulty, or metadata, and choose a difficulty to play. From here you can also select [mods](/gameplay/mods) that alter difficulty, automate play, or change the rate of the song. When you are ready, confirm your selection to load into gameplay.
+  </Step>
+  <Step title="Intro & Countdown">
+    The selected map loads and — unless you have enabled **Skip Intro** in settings — an intro countdown plays before the audio begins. Visual storyboard events and the background video (if present) start here.
+  </Step>
+  <Step title="Active Gameplay">
+    Notes scroll toward the judgement line. Hit them with the correct key at the right time to earn judgements. Your combo counter, accuracy percentage, and current score are displayed on the HUD in real time. If you fail (health reaches zero), the map ends early unless **No Fail** is active.
+  </Step>
+  <Step title="Results Screen">
+    After the last note is hit (or after failure), the results screen displays your final score, accuracy, max combo, individual judgement counts (Flawless through Miss), performance rating, and your letter rank. Rankable plays are submitted to the online leaderboard automatically if you are logged in.
+  </Step>
+</Steps>
+
+## Multiplayer
+
+fluXis includes a multiplayer mode that lets multiple players compete on the same map simultaneously. Each player's score, combo, and accuracy are tracked independently, and a shared leaderboard updates live during the match. All the same note types, scoring rules, and mod options apply in multiplayer, so the gameplay mechanics described in this guide carry over directly.
+
+<Note>
+  Multiplayer rooms are accessed from the main menu. The host selects the map and mods; other players must have the map installed locally to participate.
+</Note>

@@ -1,0 +1,189 @@
+---
+title: "Hit Objects: Normal Notes, Long Notes, and Landmines"
+sidebarTitle: "Hit Objects"
+description: "A fluXis hit object defines a note by time, lane, and type. Covers normal notes, long hold notes, tick notes, and landmines with their JSON properties."
+---
+
+Hit objects are the interactive elements of a fluXis map — the notes a player must press, hold, or avoid. Every hit object is a JSON entry in the `HitObjects` array of the `.fsc` file. At minimum an object needs a `time`, a `lane`, and a `type`. The engine reads the full list, sorts it by time, and then hands each object to the appropriate ruleset handler based on its `type` field. Whether you are building a simple four-key pattern or a complex multi-group scroll section, all note data flows through this single, compact schema.
+
+<Note>
+  All time values across fluXis are in **milliseconds** from the start of the audio track. A note at `time: 1000` appears exactly one second into the song.
+</Note>
+
+## JSON properties
+
+<ParamField body="time" type="number" required>
+  The point in the song, in milliseconds, at which the note must be hit. The engine sorts all hit objects by this value before gameplay begins, so order inside the JSON file does not matter.
+</ParamField>
+
+<ParamField body="lane" type="integer" required>
+  The column number for the note, counting from `1` (leftmost) to the keymode count (rightmost). For a 4K map valid values are `1`–`4`. The maximum lane value present in the entire `HitObjects` array determines the keymode of the map.
+</ParamField>
+
+<ParamField body="holdtime" type="number" default="0">
+  Duration of a **long note** (hold note) in milliseconds. When this value is greater than `0` and `type` is `Normal`, the note becomes a long note. The player must press the key at `time` and release it at `time + holdtime`. A value of `0` means the object is a regular tap note.
+</ParamField>
+
+<ParamField body="hitsound" type="string">
+  Name of the hit-sound sample to play when this note is hit (e.g. `"normal"`, `"clap"`, `"whistle"`). The engine resolves this name against the active skin's sound bank. When omitted or `null`, the default hit-sound for the skin is used.
+</ParamField>
+
+<ParamField body="group" type="string">
+  Optional scroll-group identifier. Notes that share the same group string are governed by a single `ScrollGroup`, allowing independent scroll velocity stacks for different lanes or visual layers. When omitted the note belongs to the default scroll group.
+</ParamField>
+
+<ParamField body="hidden" type="boolean" default="false">
+  When `true` the note is invisible to the player but still registers as a judgeable object. Used for hidden-note gimmicks or tutorial sequences where input must be detected silently.
+</ParamField>
+
+<ParamField body="type" type="integer (HitObjectType)" default="0">
+  Determines the gameplay behaviour of the note.
+
+  | Value | Name | Description |
+  |-------|------|-------------|
+  | `0` | `Normal` | Standard tap note. Becomes a long note when `holdtime > 0`. |
+  | `1` | `Tick` | Tick note — a smaller, lightweight note that counts toward combo but does not break it on miss. Uses `visual-lane` for display position. |
+  | `2` | `Landmine` | Mine — a note the player must **not** hit. Pressing it during its window causes a health penalty. |
+</ParamField>
+
+<ParamField body="visual-lane" type="float">
+  Overrides the rendered horizontal position of a **Tick** note without changing its input lane. Allows a tick note to visually float between columns for choreography purposes. Only meaningful when `type` is `1` (`Tick`).
+</ParamField>
+
+---
+
+## Note types in detail
+
+<CardGroup cols={2}>
+  <Card title="Normal Note" icon="hand-pointer">
+    A standard tap. Press the key at the correct time. `holdtime` is `0`.
+  </Card>
+  <Card title="Long Note (Hold)" icon="hand">
+    Press and hold. `type` is `Normal` and `holdtime > 0`. Both the press and release are judged separately, so a long note contributes **two** combo increments to `MaxCombo`.
+  </Card>
+  <Card title="Tick Note" icon="circle-dot">
+    A lightweight hit that builds combo without a harsh miss penalty. Use `visual-lane` to position it anywhere on the playfield.
+  </Card>
+  <Card title="Landmine" icon="bomb">
+    An avoidance note. The player must release or never press this lane during the note's window or they will take a health penalty.
+  </Card>
+</CardGroup>
+
+---
+
+## JSON examples
+
+### Normal tap note (4K, lane 2, 180 BPM beat 1)
+
+```json
+{
+  "time": 0,
+  "lane": 2,
+  "hitsound": "normal",
+  "hidden": false,
+  "type": 0
+}
+```
+
+### Long note (hold for 500 ms)
+
+A long note is a `Normal` type with `holdtime` set. The player must **press at `time`** and **release at `time + holdtime`**.
+
+```json
+{
+  "time": 1000,
+  "lane": 3,
+  "holdtime": 500,
+  "hitsound": "normal",
+  "hidden": false,
+  "type": 0
+}
+```
+
+The computed `EndTime` is `1000 + 500 = 1500 ms`.
+
+### Tick note with visual offset
+
+```json
+{
+  "time": 2000,
+  "lane": 1,
+  "visual-lane": 1.5,
+  "hitsound": "normal",
+  "type": 1
+}
+```
+
+### Landmine
+
+```json
+{
+  "time": 3000,
+  "lane": 4,
+  "hitsound": "",
+  "hidden": false,
+  "type": 2
+}
+```
+
+### Long note in a named scroll group
+
+```json
+{
+  "time": 4000,
+  "lane": 2,
+  "holdtime": 1000,
+  "hitsound": "clap",
+  "group": "slow-layer",
+  "hidden": false,
+  "type": 0
+}
+```
+
+<Tip>
+  The `group` field on a hit object links it to a `ScrollVelocity` entry that carries the same string in its own `groups` list. This lets you create split-scroll sections where different lanes move at different visual speeds simultaneously.
+</Tip>
+
+---
+
+## Computed properties (runtime only)
+
+These values are calculated by the engine and are **never written to the JSON file**. They are listed here so you understand how the game derives them.
+
+<ResponseField name="EndTime" type="number">
+  `time + holdtime` for long notes; equals `time` for tap notes. Marks the moment the hold window closes.
+</ResponseField>
+
+<ResponseField name="LongNote" type="boolean">
+  `true` when `holdtime > 0` **and** `type == Normal`. Drives the long-note renderer.
+</ResponseField>
+
+<ResponseField name="Landmine" type="boolean">
+  `true` when `type == Landmine`. Shorthand used internally by the hit-detection pipeline.
+</ResponseField>
+
+<ResponseField name="MaxCombo contribution" type="integer">
+  Each normal tap note counts as **1** combo point. Each long note counts as **2** (one for the press, one for the release). Tick notes also increment combo. Landmines do not contribute to combo.
+</ResponseField>
+
+---
+
+## Validation rules
+
+The engine enforces these constraints before a map can be played:
+
+<Steps>
+  <Step title="At least one hit object">
+    The `HitObjects` array must not be empty.
+  </Step>
+  <Step title="Lane must be ≥ 1">
+    No hit object may have a `lane` value below `1`.
+  </Step>
+  <Step title="Keymode within allowed range">
+    The maximum lane index across all hit objects defines the keymode. It must fall within the game's configured minimum (`MinKeymode`) and maximum (`MaxKeymode`) keymodes. By default only the minimum is enforced (1); the maximum is unlimited.
+  </Step>
+</Steps>
+
+<Warning>
+  If any timing point has a BPM of `0` or below, or a `signature` of `0` or below, the map will fail validation even if all hit objects are valid.
+</Warning>
